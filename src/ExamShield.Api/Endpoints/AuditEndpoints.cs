@@ -1,0 +1,37 @@
+using ExamShield.Api.Contracts;
+using ExamShield.Application.Queries.GetAuditLog;
+using MediatR;
+
+namespace ExamShield.Api.Endpoints;
+
+public static class AuditEndpoints
+{
+    public static IEndpointRouteBuilder MapAuditEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGet("/audit", GetAuditLogAsync)
+            .WithName("GetAuditLog")
+            .WithTags("Audit")
+            .RequireAuthorization("Auditor")
+            .Produces<AuditLogResponse>();
+
+        return app;
+    }
+
+    private static async Task<IResult> GetAuditLogAsync(
+        ISender sender,
+        Guid? captureId = null,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken ct = default)
+    {
+        var result = await sender.Send(new GetAuditLogQuery(captureId, page, pageSize), ct);
+
+        var response = new AuditLogResponse(
+            result.Entries.Select(e => new AuditLogEntryResponse(
+                e.Id, e.Action, e.CaptureId, e.UserId, e.IpAddress, e.OccurredAt, e.Reason
+            )).ToList(),
+            result.TotalCount);
+
+        return Results.Ok(response);
+    }
+}
