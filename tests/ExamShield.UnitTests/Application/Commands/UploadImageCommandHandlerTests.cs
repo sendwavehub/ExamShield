@@ -8,6 +8,7 @@ using ExamShield.Domain.Services;
 using ExamShield.Domain.ValueObjects;
 using FluentAssertions;
 using NSubstitute;
+using Xunit;
 
 namespace ExamShield.UnitTests.Application.Commands;
 
@@ -16,18 +17,23 @@ public sealed class UploadImageCommandHandlerTests
     private readonly ICaptureRepository _repository = Substitute.For<ICaptureRepository>();
     private readonly IImageStorage _imageStorage = Substitute.For<IImageStorage>();
     private readonly IAuditLogRepository _auditLog = Substitute.For<IAuditLogRepository>();
+    private readonly IWatermarkService _watermarkService = Substitute.For<IWatermarkService>();
     private readonly HashVerificationService _hashService = new();
     private readonly UploadImageCommandHandler _sut;
 
     private static readonly byte[] SampleImage = "answer-sheet-bytes"u8.ToArray();
+    private static readonly byte[] WatermarkedImage = [..SampleImage, 0xFF, 0xFE];
     private static readonly Hash SampleHash = Hash.FromBytes(SHA256.HashData(SampleImage));
 
     public UploadImageCommandHandlerTests()
     {
+        _watermarkService.Embed(Arg.Any<byte[]>(), Arg.Any<WatermarkPayload>())
+            .Returns(WatermarkedImage);
         _imageStorage.StoreAsync(Arg.Any<Guid>(), Arg.Any<byte[]>(), Arg.Any<CancellationToken>())
             .Returns("captures/test-key");
 
-        _sut = new UploadImageCommandHandler(_repository, _hashService, _imageStorage, _auditLog);
+        _sut = new UploadImageCommandHandler(
+            _repository, _hashService, _imageStorage, _auditLog, _watermarkService);
     }
 
     private Capture CaptureWithSampleHash()
@@ -51,13 +57,29 @@ public sealed class UploadImageCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithValidImageAndMatchingHash_StoresImage()
+    public async Task Handle_WithValidImageAndMatchingHash_StoresWatermarkedImage()
     {
         var capture = CaptureWithSampleHash();
 
         await _sut.Handle(new UploadImageCommand(capture.Id.Value, SampleImage), CancellationToken.None);
 
-        await _imageStorage.Received(1).StoreAsync(capture.Id.Value, SampleImage, Arg.Any<CancellationToken>());
+        await _imageStorage.Received(1)
+            .StoreAsync(capture.Id.Value, WatermarkedImage, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WithValidImageAndMatchingHash_EmbedsWatermarkWithCorrectPayload()
+    {
+        var capture = CaptureWithSampleHash();
+
+        await _sut.Handle(new UploadImageCommand(capture.Id.Value, SampleImage), CancellationToken.None);
+
+        _watermarkService.Received(1).Embed(
+            SampleImage,
+            Arg.Is<WatermarkPayload>(p =>
+                p.CaptureId == capture.Id.Value &&
+                p.ExamId == capture.ExamId.Value &&
+                p.ImageHash == capture.ExpectedHash.Hex));
     }
 
     [Fact]
@@ -108,7 +130,7 @@ public sealed class UploadImageCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenHashMismatches_DoesNotStoreImage()
+    public async Task Handle_WhenHashMismatches_DoesNotEmbedOrStoreImage()
     {
         var capture = Capture.Create(
             ExamId.New(), StudentId.New(), DeviceId.New(),
@@ -118,13 +140,14 @@ public sealed class UploadImageCommandHandlerTests
         try { await _sut.Handle(new UploadImageCommand(capture.Id.Value, SampleImage), CancellationToken.None); }
         catch (HashMismatchException) { }
 
+        _watermarkService.DidNotReceive().Embed(Arg.Any<byte[]>(), Arg.Any<WatermarkPayload>());
         await _imageStorage.DidNotReceive().StoreAsync(Arg.Any<Guid>(), Arg.Any<byte[]>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Handle_WithEmptyImageBytes_ThrowsArgumentException()
     {
-        var act = () => _sut.Handle(new UploadImageCommand(Guid.NewGuid(), Array.Empty<byte>()), CancellationToken.None);
+        var act = () => _sut.Handle(new UploadImageCommand(Guid.NewGuid(), []), CancellationToken.None);
 
         await act.Should().ThrowAsync<ArgumentException>();
     }

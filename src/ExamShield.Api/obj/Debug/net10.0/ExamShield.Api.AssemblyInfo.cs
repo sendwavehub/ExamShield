@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ExamShield.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+233503176f99a6923ac0bcdcd74c9da747334d3f")]
 [assembly: System.Reflection.AssemblyProductAttribute("ExamShield.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ExamShield.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

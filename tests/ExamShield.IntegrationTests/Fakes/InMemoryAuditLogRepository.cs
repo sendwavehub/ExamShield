@@ -1,5 +1,6 @@
 using ExamShield.Domain.Entities;
 using ExamShield.Domain.Interfaces;
+using ExamShield.Domain.Services;
 using ExamShield.Domain.ValueObjects;
 
 namespace ExamShield.IntegrationTests.Fakes;
@@ -10,6 +11,13 @@ public sealed class InMemoryAuditLogRepository : IAuditLogRepository
 
     public Task AppendAsync(AuditLog entry, CancellationToken ct = default)
     {
+        var previousHash = entry.CaptureId is not null
+            ? _entries.LastOrDefault(e => e.CaptureId == entry.CaptureId)?.ContentHash ?? string.Empty
+            : string.Empty;
+
+        var contentHash = AuditChainHasher.ComputeContentHash(entry, previousHash);
+        entry.SetChainHashes(previousHash, contentHash);
+
         _entries.Add(entry);
         return Task.CompletedTask;
     }
@@ -30,5 +38,15 @@ public sealed class InMemoryAuditLogRepository : IAuditLogRepository
             .ToList();
 
         return Task.FromResult<(IReadOnlyList<AuditLog>, int)>((entries, total));
+    }
+
+    public Task<IReadOnlyList<AuditLog>> GetChainAsync(
+        CaptureId captureId, CancellationToken ct = default)
+    {
+        var chain = _entries
+            .Where(e => e.CaptureId == captureId)
+            .OrderBy(e => e.OccurredAt)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<AuditLog>>(chain);
     }
 }

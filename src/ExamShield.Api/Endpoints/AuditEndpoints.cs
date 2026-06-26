@@ -1,5 +1,6 @@
 using ExamShield.Api.Contracts;
 using ExamShield.Application.Queries.GetAuditLog;
+using ExamShield.Application.Queries.VerifyAuditChain;
 using MediatR;
 
 namespace ExamShield.Api.Endpoints;
@@ -13,6 +14,12 @@ public static class AuditEndpoints
             .WithTags("Audit")
             .RequireAuthorization("Auditor")
             .Produces<AuditLogResponse>();
+
+        app.MapGet("/audit/verify/{captureId:guid}", VerifyAuditChainAsync)
+            .WithName("VerifyAuditChain")
+            .WithTags("Audit")
+            .RequireAuthorization("SecurityOfficer")
+            .Produces<VerifyAuditChainResponse>();
 
         return app;
     }
@@ -28,10 +35,19 @@ public static class AuditEndpoints
 
         var response = new AuditLogResponse(
             result.Entries.Select(e => new AuditLogEntryResponse(
-                e.Id, e.Action, e.CaptureId, e.UserId, e.IpAddress, e.OccurredAt, e.Reason
+                e.Id, e.Action, e.CaptureId, e.UserId, e.IpAddress, e.OccurredAt, e.Reason,
+                e.ContentHash
             )).ToList(),
             result.TotalCount);
 
         return Results.Ok(response);
+    }
+
+    private static async Task<IResult> VerifyAuditChainAsync(
+        Guid captureId, ISender sender, CancellationToken ct = default)
+    {
+        var result = await sender.Send(new VerifyAuditChainQuery(captureId), ct);
+        return Results.Ok(new VerifyAuditChainResponse(
+            result.IsValid, result.EntryCount, result.FirstBrokenIndex));
     }
 }

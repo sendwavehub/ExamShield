@@ -17,3 +17,4 @@
 /Volumes/External/Workspace/ExamShield/src/ExamShield.Infrastructure/obj/Debug/net10.0/ExamShield.Infrastructure.pdb
 /Volumes/External/Workspace/ExamShield/src/ExamShield.Infrastructure/obj/Debug/net10.0/ExamShield.Infrastructure.genruntimeconfig.cache
 /Volumes/External/Workspace/ExamShield/src/ExamShield.Infrastructure/obj/Debug/net10.0/ref/ExamShield.Infrastructure.dll
+/Volumes/External/Workspace/ExamShield/src/ExamShield.Infrastructure/obj/Debug/net10.0/ExamShield.Infrastructure.sourcelink.json

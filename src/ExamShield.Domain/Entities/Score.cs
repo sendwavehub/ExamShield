@@ -12,6 +12,8 @@ public sealed class Score : AggregateRoot
     public int TotalQuestions { get; private set; }
     public double Percentage { get; private set; }
     public DateTimeOffset ScoredAt { get; private set; }
+    public bool IsPublished { get; private set; }
+    public DateTimeOffset? PublishedAt { get; private set; }
 
     private Score() { }
 
@@ -40,5 +42,13 @@ public sealed class Score : AggregateRoot
             Percentage = pct,
             ScoredAt = DateTimeOffset.UtcNow
         };
+    }
+
+    public void Publish()
+    {
+        if (IsPublished)
+            return; // idempotent — already published
+        IsPublished = true;
+        PublishedAt = DateTimeOffset.UtcNow;
     }
 }

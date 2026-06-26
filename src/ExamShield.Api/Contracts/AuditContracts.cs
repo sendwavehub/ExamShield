@@ -12,5 +12,12 @@ public sealed record AuditLogEntryResponse(
     string UserId,
     string IpAddress,
     DateTimeOffset OccurredAt,
-    string? Reason
+    string? Reason,
+    string ContentHash
+);
+
+public sealed record VerifyAuditChainResponse(
+    bool IsValid,
+    int EntryCount,
+    int? FirstBrokenIndex
 );

@@ -139,3 +139,8 @@
 /Volumes/External/Workspace/ExamShield/src/ExamShield.Api/bin/Debug/net10.0/Microsoft.IdentityModel.Protocols.dll
 /Volumes/External/Workspace/ExamShield/src/ExamShield.Api/bin/Debug/net10.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 /Volumes/External/Workspace/ExamShield/src/ExamShield.Api/bin/Debug/net10.0/System.IdentityModel.Tokens.Jwt.dll
+/Volumes/External/Workspace/ExamShield/src/ExamShield.Api/obj/Debug/net10.0/ExamShield.Api.sourcelink.json
+/Volumes/External/Workspace/ExamShield/src/ExamShield.Api/bin/Debug/net10.0/CommunityToolkit.HighPerformance.dll
+/Volumes/External/Workspace/ExamShield/src/ExamShield.Api/bin/Debug/net10.0/Minio.dll
+/Volumes/External/Workspace/ExamShield/src/ExamShield.Api/bin/Debug/net10.0/System.IO.Hashing.dll
+/Volumes/External/Workspace/ExamShield/src/ExamShield.Api/bin/Debug/net10.0/System.Reactive.dll

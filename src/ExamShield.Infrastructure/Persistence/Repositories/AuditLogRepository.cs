@@ -1,5 +1,6 @@
 using ExamShield.Domain.Entities;
 using ExamShield.Domain.Interfaces;
+using ExamShield.Domain.Services;
 using ExamShield.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,19 @@ public sealed class AuditLogRepository : IAuditLogRepository
 
     public async Task AppendAsync(AuditLog entry, CancellationToken ct = default)
     {
+        var previousHash = string.Empty;
+        if (entry.CaptureId is not null)
+        {
+            var last = await _context.AuditLogs
+                .Where(e => e.CaptureId == entry.CaptureId)
+                .OrderByDescending(e => e.OccurredAt)
+                .FirstOrDefaultAsync(ct);
+            previousHash = last?.ContentHash ?? string.Empty;
+        }
+
+        var contentHash = AuditChainHasher.ComputeContentHash(entry, previousHash);
+        entry.SetChainHashes(previousHash, contentHash);
+
         await _context.AuditLogs.AddAsync(entry, ct);
         await _context.SaveChangesAsync(ct);
     }
@@ -35,4 +49,11 @@ public sealed class AuditLogRepository : IAuditLogRepository
 
         return (entries, total);
     }
+
+    public async Task<IReadOnlyList<AuditLog>> GetChainAsync(
+        CaptureId captureId, CancellationToken ct = default) =>
+        await _context.AuditLogs
+            .Where(e => e.CaptureId == captureId)
+            .OrderBy(e => e.OccurredAt)
+            .ToListAsync(ct);
 }

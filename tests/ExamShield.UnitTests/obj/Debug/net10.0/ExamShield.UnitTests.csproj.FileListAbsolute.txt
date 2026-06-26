@@ -136,3 +136,8 @@
 /Volumes/External/Workspace/ExamShield/tests/ExamShield.UnitTests/bin/Debug/net10.0/System.IdentityModel.Tokens.Jwt.dll
 /Volumes/External/Workspace/ExamShield/tests/ExamShield.UnitTests/bin/Debug/net10.0/ExamShield.Infrastructure.dll
 /Volumes/External/Workspace/ExamShield/tests/ExamShield.UnitTests/bin/Debug/net10.0/ExamShield.Infrastructure.pdb
+/Volumes/External/Workspace/ExamShield/tests/ExamShield.UnitTests/obj/Debug/net10.0/ExamShield.UnitTests.sourcelink.json
+/Volumes/External/Workspace/ExamShield/tests/ExamShield.UnitTests/bin/Debug/net10.0/CommunityToolkit.HighPerformance.dll
+/Volumes/External/Workspace/ExamShield/tests/ExamShield.UnitTests/bin/Debug/net10.0/Minio.dll
+/Volumes/External/Workspace/ExamShield/tests/ExamShield.UnitTests/bin/Debug/net10.0/System.IO.Hashing.dll
+/Volumes/External/Workspace/ExamShield/tests/ExamShield.UnitTests/bin/Debug/net10.0/System.Reactive.dll

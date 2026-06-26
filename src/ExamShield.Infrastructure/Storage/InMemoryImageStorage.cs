@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
+using ExamShield.Domain.Exceptions;
 using ExamShield.Domain.Interfaces;
 
 namespace ExamShield.Infrastructure.Storage;
 
-// Dev/test implementation — replaced by MinioImageStorage when object storage is available.
 public sealed class InMemoryImageStorage : IImageStorage
 {
     private readonly ConcurrentDictionary<string, byte[]> _store = new();
@@ -18,7 +18,7 @@ public sealed class InMemoryImageStorage : IImageStorage
     public Task<byte[]> RetrieveAsync(string storageKey, CancellationToken ct = default)
     {
         if (!_store.TryGetValue(storageKey, out var bytes))
-            throw new KeyNotFoundException($"Image not found at key: {storageKey}");
+            throw new ImageNotFoundException(storageKey);
         return Task.FromResult(bytes.ToArray());
     }
 }

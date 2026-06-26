@@ -55,6 +55,9 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IManualReviewRepository>();
             services.AddSingleton<IManualReviewRepository, InMemoryManualReviewRepository>();
 
+            services.RemoveAll<IScoreRepository>();
+            services.AddSingleton<IScoreRepository, InMemoryScoreRepository>();
+
             // IPasswordHasher and IJwtTokenService stay — real BCrypt + real JWT for auth tests.
         });
     }

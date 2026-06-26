@@ -24,7 +24,8 @@ public sealed class GetAuditLogQueryHandler : IRequestHandler<GetAuditLogQuery, 
             e.UserId,
             e.IpAddress,
             e.OccurredAt,
-            e.Reason
+            e.Reason,
+            e.ContentHash
         )).ToList();
 
         return new GetAuditLogResult(dtos, total);

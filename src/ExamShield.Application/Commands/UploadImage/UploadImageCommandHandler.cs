@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using ExamShield.Domain.Entities;
 using ExamShield.Domain.Enums;
 using ExamShield.Domain.Exceptions;
@@ -14,17 +15,20 @@ public sealed class UploadImageCommandHandler : IRequestHandler<UploadImageComma
     private readonly HashVerificationService _hashService;
     private readonly IImageStorage _imageStorage;
     private readonly IAuditLogRepository _auditLog;
+    private readonly IWatermarkService _watermarkService;
 
     public UploadImageCommandHandler(
         ICaptureRepository repository,
         HashVerificationService hashService,
         IImageStorage imageStorage,
-        IAuditLogRepository auditLog)
+        IAuditLogRepository auditLog,
+        IWatermarkService watermarkService)
     {
         _repository = repository;
         _hashService = hashService;
         _imageStorage = imageStorage;
         _auditLog = auditLog;
+        _watermarkService = watermarkService;
     }
 
     public async Task<UploadImageResult> Handle(UploadImageCommand command, CancellationToken ct)
@@ -39,7 +43,17 @@ public sealed class UploadImageCommandHandler : IRequestHandler<UploadImageComma
         if (actualHash != capture.ExpectedHash)
             throw new HashMismatchException(command.CaptureId, capture.ExpectedHash, actualHash);
 
-        var storageKey = await _imageStorage.StoreAsync(command.CaptureId, command.ImageBytes, ct);
+        var payload = new WatermarkPayload
+        {
+            ExamId = capture.ExamId.Value,
+            CaptureId = capture.Id.Value,
+            TimestampUtcTicks = DateTimeOffset.UtcNow.UtcTicks,
+            Nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)),
+            ImageHash = capture.ExpectedHash.Hex
+        };
+        var watermarkedBytes = _watermarkService.Embed(command.ImageBytes, payload);
+
+        var storageKey = await _imageStorage.StoreAsync(command.CaptureId, watermarkedBytes, ct);
 
         capture.RecordUpload(storageKey);
 

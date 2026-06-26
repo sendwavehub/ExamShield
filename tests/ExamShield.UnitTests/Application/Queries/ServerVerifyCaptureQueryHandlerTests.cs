@@ -1,13 +1,13 @@
 using System.Security.Cryptography;
 using ExamShield.Application.Queries.ServerVerifyCapture;
 using ExamShield.Domain.Entities;
-using ExamShield.Domain.Enums;
 using ExamShield.Domain.Exceptions;
 using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.Services;
 using ExamShield.Domain.ValueObjects;
 using FluentAssertions;
 using NSubstitute;
+using Xunit;
 
 namespace ExamShield.UnitTests.Application.Queries;
 
@@ -19,6 +19,7 @@ public sealed class ServerVerifyCaptureQueryHandlerTests
     private readonly ISignatureVerificationService _sigService = Substitute.For<ISignatureVerificationService>();
     private readonly IAuditLogRepository _auditLog = Substitute.For<IAuditLogRepository>();
     private readonly IAlertService _alertService = Substitute.For<IAlertService>();
+    private readonly IWatermarkService _watermarkService = Substitute.For<IWatermarkService>();
     private readonly HashVerificationService _hashService = new();
     private readonly ServerVerifyCaptureQueryHandler _sut;
 
@@ -26,20 +27,30 @@ public sealed class ServerVerifyCaptureQueryHandlerTests
     private static readonly string HashHex =
         Convert.ToHexString(SHA256.HashData(ImageBytes)).ToLowerInvariant();
 
+    // Simulate what storage returns: watermarked bytes (original + appended envelope)
+    private static readonly byte[] StoredBytes = [..ImageBytes, 0xAA, 0xBB, 0xCC];
+
+    private WatermarkExtractionResult ValidExtraction => WatermarkExtractionResult.Success(
+        new WatermarkPayload { ImageHash = HashHex },
+        originalImageLength: ImageBytes.Length);
+
     public ServerVerifyCaptureQueryHandlerTests()
     {
         _sut = new ServerVerifyCaptureQueryHandler(
-            _captures, _imageStorage, _hashService, _devices, _sigService, _auditLog, _alertService);
+            _captures, _imageStorage, _hashService, _devices, _sigService, _auditLog, _alertService,
+            _watermarkService);
     }
 
-    private static Capture BuildUploadedCapture()
+    private Capture BuildUploadedCapture()
     {
-        var key = new PublicKey(new byte[] { 0x04, 0x01 });
         var capture = Capture.Create(
             new ExamId(Guid.NewGuid()), new StudentId(Guid.NewGuid()),
             new DeviceId(Guid.NewGuid()), new PageNumber(1),
-            Hash.FromHex(HashHex), new Signature(new byte[] { 0x01, 0x02 }));
+            Hash.FromHex(HashHex), new Signature([0x01, 0x02]));
         capture.RecordUpload("captures/test");
+        _captures.GetByIdAsync(Arg.Any<CaptureId>(), Arg.Any<CancellationToken>()).Returns(capture);
+        _imageStorage.RetrieveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(StoredBytes);
+        _watermarkService.Extract(StoredBytes).Returns(ValidExtraction);
         return capture;
     }
 
@@ -60,9 +71,8 @@ public sealed class ServerVerifyCaptureQueryHandlerTests
         var capture = Capture.Create(
             new ExamId(Guid.NewGuid()), new StudentId(Guid.NewGuid()),
             new DeviceId(Guid.NewGuid()), new PageNumber(1),
-            Hash.FromHex(HashHex), new Signature(new byte[] { 0x01 }));
-        _captures.GetByIdAsync(Arg.Any<CaptureId>(), Arg.Any<CancellationToken>())
-            .Returns(capture);
+            Hash.FromHex(HashHex), new Signature([0x01]));
+        _captures.GetByIdAsync(Arg.Any<CaptureId>(), Arg.Any<CancellationToken>()).Returns(capture);
 
         var act = () => _sut.Handle(new ServerVerifyCaptureQuery(capture.Id.Value), default);
 
@@ -73,10 +83,7 @@ public sealed class ServerVerifyCaptureQueryHandlerTests
     public async Task Handle_WhenHashMatchesAndSignatureValid_ReturnsIsValidTrue()
     {
         var capture = BuildUploadedCapture();
-        var device = Device.Register("dev", new PublicKey(new byte[] { 0x04 }));
-
-        _captures.GetByIdAsync(Arg.Any<CaptureId>(), Arg.Any<CancellationToken>()).Returns(capture);
-        _imageStorage.RetrieveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(ImageBytes);
+        var device = Device.Register("dev", new PublicKey([0x04]));
         _devices.GetByIdAsync(Arg.Any<DeviceId>(), Arg.Any<CancellationToken>()).Returns(device);
         _sigService.Verify(Arg.Any<Hash>(), Arg.Any<Signature>(), Arg.Any<PublicKey>()).Returns(true);
 
@@ -88,16 +95,13 @@ public sealed class ServerVerifyCaptureQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenHashMismatches_ReturnsIsValidFalse()
+    public async Task Handle_WhenWatermarkExtractionFails_ReturnsHashInvalid()
     {
         var capture = BuildUploadedCapture();
-        var device = Device.Register("dev", new PublicKey(new byte[] { 0x04 }));
-        var tamperedBytes = "tampered!"u8.ToArray();
-
-        _captures.GetByIdAsync(Arg.Any<CaptureId>(), Arg.Any<CancellationToken>()).Returns(capture);
-        _imageStorage.RetrieveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(tamperedBytes);
+        var device = Device.Register("dev", new PublicKey([0x04]));
         _devices.GetByIdAsync(Arg.Any<DeviceId>(), Arg.Any<CancellationToken>()).Returns(device);
         _sigService.Verify(Arg.Any<Hash>(), Arg.Any<Signature>(), Arg.Any<PublicKey>()).Returns(true);
+        _watermarkService.Extract(Arg.Any<byte[]>()).Returns(WatermarkExtractionResult.Failure());
 
         var result = await _sut.Handle(new ServerVerifyCaptureQuery(capture.Id.Value), default);
 
@@ -109,10 +113,7 @@ public sealed class ServerVerifyCaptureQueryHandlerTests
     public async Task Handle_WhenSignatureInvalid_ReturnsIsValidFalse()
     {
         var capture = BuildUploadedCapture();
-        var device = Device.Register("dev", new PublicKey(new byte[] { 0x04 }));
-
-        _captures.GetByIdAsync(Arg.Any<CaptureId>(), Arg.Any<CancellationToken>()).Returns(capture);
-        _imageStorage.RetrieveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(ImageBytes);
+        var device = Device.Register("dev", new PublicKey([0x04]));
         _devices.GetByIdAsync(Arg.Any<DeviceId>(), Arg.Any<CancellationToken>()).Returns(device);
         _sigService.Verify(Arg.Any<Hash>(), Arg.Any<Signature>(), Arg.Any<PublicKey>()).Returns(false);
 

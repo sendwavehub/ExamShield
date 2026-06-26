@@ -5,9 +5,11 @@ using ExamShield.Infrastructure.Persistence;
 using ExamShield.Infrastructure.Persistence.Repositories;
 using ExamShield.Infrastructure.Security;
 using ExamShield.Infrastructure.Storage;
+using ExamShield.Infrastructure.Watermark;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Minio;
 
 namespace ExamShield.Infrastructure;
 
@@ -26,10 +28,31 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISignatureVerificationService, EcdsaSignatureVerificationService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
-        services.AddSingleton<IImageStorage, InMemoryImageStorage>();
+        var storageOptions = configuration.GetSection(StorageOptions.Section).Get<StorageOptions>() ?? new StorageOptions();
+        if (storageOptions.Type == "MinIO")
+        {
+            var minioClient = new MinioClient()
+                .WithEndpoint(storageOptions.Endpoint)
+                .WithCredentials(storageOptions.AccessKey, storageOptions.SecretKey)
+                .WithSSL(storageOptions.UseSSL)
+                .Build();
+            services.AddSingleton<IObjectStore>(new MinioObjectStore(minioClient, storageOptions.BucketName));
+            services.AddSingleton<IImageStorage, MinioImageStorage>();
+        }
+        else
+        {
+            services.AddSingleton<IImageStorage, InMemoryImageStorage>();
+        }
         services.AddSingleton<IOcrService, StubOcrService>();
-        services.AddSingleton<IOcrResultRepository, InMemoryOcrResultRepository>();
-        services.AddSingleton<IManualReviewRepository, InMemoryManualReviewRepository>();
+        services.AddScoped<IOcrResultRepository, OcrResultRepository>();
+        services.AddScoped<IManualReviewRepository, ManualReviewRepository>();
+        services.AddScoped<IScoreRepository, ScoreRepository>();
+        services.AddSingleton<IAnswerKeyRepository, StubAnswerKeyRepository>();
+        var wmOptions = configuration.GetSection(WatermarkOptions.Section).Get<WatermarkOptions>() ?? new WatermarkOptions();
+        var hmacKey = string.IsNullOrEmpty(wmOptions.HmacKeyBase64)
+            ? new byte[32]
+            : Convert.FromBase64String(wmOptions.HmacKeyBase64);
+        services.AddSingleton<IWatermarkService>(new HmacWatermarkService(hmacKey));
         services.AddHttpClient("Alerts");
         services.AddSingleton<IAlertService, AlertService>();
         return services;

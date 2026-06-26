@@ -471,3 +471,8 @@
 /Volumes/External/Workspace/ExamShield/tests/ExamShield.IntegrationTests/bin/Debug/net10.0/Microsoft.IdentityModel.Protocols.dll
 /Volumes/External/Workspace/ExamShield/tests/ExamShield.IntegrationTests/bin/Debug/net10.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 /Volumes/External/Workspace/ExamShield/tests/ExamShield.IntegrationTests/bin/Debug/net10.0/System.IdentityModel.Tokens.Jwt.dll
+/Volumes/External/Workspace/ExamShield/tests/ExamShield.IntegrationTests/obj/Debug/net10.0/ExamShield.IntegrationTests.sourcelink.json
+/Volumes/External/Workspace/ExamShield/tests/ExamShield.IntegrationTests/bin/Debug/net10.0/CommunityToolkit.HighPerformance.dll
+/Volumes/External/Workspace/ExamShield/tests/ExamShield.IntegrationTests/bin/Debug/net10.0/Minio.dll
+/Volumes/External/Workspace/ExamShield/tests/ExamShield.IntegrationTests/bin/Debug/net10.0/System.IO.Hashing.dll
+/Volumes/External/Workspace/ExamShield/tests/ExamShield.IntegrationTests/bin/Debug/net10.0/System.Reactive.dll

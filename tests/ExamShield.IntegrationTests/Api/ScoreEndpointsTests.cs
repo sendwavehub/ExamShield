@@ -12,6 +12,7 @@ public sealed class ScoreEndpointsTests : IClassFixture<TestWebApplicationFactor
     private HttpClient _client = null!;
     private readonly ECDsa _ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
     private Guid _captureId;
+    private Guid _examId;
 
     private static readonly byte[] ImageBytes = "score-test-exam-image"u8.ToArray();
     private static readonly string HashHex =
@@ -27,8 +28,9 @@ public sealed class ScoreEndpointsTests : IClassFixture<TestWebApplicationFactor
             new RegisterDeviceRequest("Score-Test Device", _ecdsa.ExportSubjectPublicKeyInfo()));
         var device = await deviceResponse.Content.ReadFromJsonAsync<RegisterDeviceResponse>();
 
+        _examId = Guid.NewGuid();
         var captureResponse = await _client.PostAsJsonAsync("/capture", new RegisterCaptureRequest(
-            ExamId: Guid.NewGuid(), StudentId: Guid.NewGuid(),
+            ExamId: _examId, StudentId: Guid.NewGuid(),
             DeviceId: device!.DeviceId, PageNumber: 1,
             HashHex: HashHex,
             SignatureBytes: _ecdsa.SignHash(Convert.FromHexString(HashHex))));
@@ -70,21 +72,47 @@ public sealed class ScoreEndpointsTests : IClassFixture<TestWebApplicationFactor
     }
 
     [Fact]
-    public async Task GetResults_Returns200()
+    public async Task PostPublish_AfterScoring_Returns200WithPublishedCount()
     {
-        var response = await _client.GetAsync("/results");
+        await _client.PostAsJsonAsync("/score", new ScoreCaptureRequest(_captureId));
+
+        var response = await _client.PostAsJsonAsync("/results/publish",
+            new PublishResultsRequest(_examId));
+        var body = await response.Content.ReadFromJsonAsync<PublishResultsResponse>();
+
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body!.PublishedCount.Should().Be(1);
     }
 
     [Fact]
-    public async Task GetResults_AfterScoring_IncludesScore()
+    public async Task GetResults_AfterScoringAndPublishing_IncludesScore()
+    {
+        await _client.PostAsJsonAsync("/score", new ScoreCaptureRequest(_captureId));
+        await _client.PostAsJsonAsync("/results/publish", new PublishResultsRequest(_examId));
+
+        var response = await _client.GetAsync("/results");
+        var body = await response.Content.ReadFromJsonAsync<GetResultsResponse>();
+
+        body!.Results.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task GetResults_BeforePublishing_DoesNotIncludeThisExamsScore()
     {
         await _client.PostAsJsonAsync("/score", new ScoreCaptureRequest(_captureId));
 
         var response = await _client.GetAsync("/results");
         var body = await response.Content.ReadFromJsonAsync<GetResultsResponse>();
 
-        body!.Results.Should().NotBeEmpty();
+        // Score is created but not yet published — this exam's results must not appear
+        body!.Results.Should().NotContain(r => r.ExamId == _examId);
+    }
+
+    [Fact]
+    public async Task GetResults_Returns200()
+    {
+        var response = await _client.GetAsync("/results");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -100,6 +128,15 @@ public sealed class ScoreEndpointsTests : IClassFixture<TestWebApplicationFactor
         using var unauthClient = _factory.CreateClient();
         var response = await unauthClient.PostAsJsonAsync("/score",
             new ScoreCaptureRequest(Guid.NewGuid()));
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task PostPublish_Unauthenticated_Returns401()
+    {
+        using var unauthClient = _factory.CreateClient();
+        var response = await unauthClient.PostAsJsonAsync("/results/publish",
+            new PublishResultsRequest(Guid.NewGuid()));
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }

@@ -29,6 +29,8 @@ public sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(a => a.UserId).HasMaxLength(256);
         builder.Property(a => a.IpAddress).HasMaxLength(45);
         builder.Property(a => a.Reason).HasMaxLength(500);
+        builder.Property(a => a.PreviousHash).HasMaxLength(64).IsRequired();
+        builder.Property(a => a.ContentHash).HasMaxLength(64).IsRequired();
 
         // Store as UTC ticks (long) so SQLite can sort on it without a DateTimeOffset cast.
         builder.Property(a => a.OccurredAt)

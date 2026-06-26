@@ -80,7 +80,8 @@ app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async ctx =>
         HashMismatchException        => (400, ex.Message),
         InvalidSignatureException    => (400, ex.Message),
         CaptureNotUploadedException  => (400, ex.Message),
-        OcrResultNotFoundException   => (404, ex.Message),
+        OcrResultNotFoundException      => (404, ex.Message),
+        ManualReviewNotFoundException   => (404, ex.Message),
         InvalidCredentialsException  => (401, ex.Message),
         UserAlreadyExistsException   => (409, ex.Message),
         ArgumentException e          => (400, e.Message),
@@ -104,6 +105,8 @@ app.MapUploadEndpoints();
 app.MapAuditEndpoints();
 app.MapVerifyEndpoints();
 app.MapOcrEndpoints();
+app.MapScoreEndpoints();
+app.MapManualReviewEndpoints();
 
 app.Run();
 

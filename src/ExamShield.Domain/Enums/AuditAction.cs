@@ -13,5 +13,6 @@ public enum AuditAction
     OCRStarted,
     OCRCompleted,
     ScoreGenerated,
-    ResultPublished
+    ResultPublished,
+    ResultsPublished
 }

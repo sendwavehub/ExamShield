@@ -35,6 +35,11 @@ namespace ExamShield.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CaptureId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("IpAddress")
                         .IsRequired()
                         .HasMaxLength(45)
@@ -42,6 +47,11 @@ namespace ExamShield.Infrastructure.Persistence.Migrations
 
                     b.Property<long>("OccurredAt")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("PreviousHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
@@ -128,6 +138,101 @@ namespace ExamShield.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Devices", (string)null);
+                });
+
+            modelBuilder.Entity("ExamShield.Domain.Entities.ManualReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CaptureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long?>("CompletedAt")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("OcrResultId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReviewedAnswers")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ManualReviews", (string)null);
+                });
+
+            modelBuilder.Entity("ExamShield.Domain.Entities.OcrResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Answers")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CaptureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("OverallConfidence")
+                        .HasColumnType("double precision")
+                        .HasColumnName("OverallConfidence");
+
+                    b.Property<long>("ProcessedAt")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OcrResults", (string)null);
+                });
+
+            modelBuilder.Entity("ExamShield.Domain.Entities.Score", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CaptureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CorrectAnswers")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ExamId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean");
+
+                    b.Property<double>("Percentage")
+                        .HasColumnType("double precision");
+
+                    b.Property<long?>("PublishedAt")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ScoredAt")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TotalQuestions")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Scores", (string)null);
                 });
 
             modelBuilder.Entity("ExamShield.Domain.Entities.User", b =>

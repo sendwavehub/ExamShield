@@ -20,5 +20,6 @@ public sealed record AuditLogDto(
     string UserId,
     string IpAddress,
     DateTimeOffset OccurredAt,
-    string? Reason
+    string? Reason,
+    string ContentHash
 );

@@ -18,12 +18,13 @@ public sealed class ServerVerifyCaptureQueryHandler
     private readonly ISignatureVerificationService _sigService;
     private readonly IAuditLogRepository _auditLog;
     private readonly IAlertService _alertService;
+    private readonly IWatermarkService _watermarkService;
 
     public ServerVerifyCaptureQueryHandler(
         ICaptureRepository captures, IImageStorage imageStorage,
         HashVerificationService hashService, IDeviceRepository devices,
         ISignatureVerificationService sigService, IAuditLogRepository auditLog,
-        IAlertService alertService)
+        IAlertService alertService, IWatermarkService watermarkService)
     {
         _captures = captures;
         _imageStorage = imageStorage;
@@ -32,6 +33,7 @@ public sealed class ServerVerifyCaptureQueryHandler
         _sigService = sigService;
         _auditLog = auditLog;
         _alertService = alertService;
+        _watermarkService = watermarkService;
     }
 
     public async Task<ServerVerifyResult> Handle(
@@ -43,9 +45,20 @@ public sealed class ServerVerifyCaptureQueryHandler
         if (capture.StorageKey is null)
             throw new CaptureNotUploadedException(query.CaptureId);
 
-        var imageBytes = await _imageStorage.RetrieveAsync(capture.StorageKey, ct);
-        var actualHash = _hashService.ComputeHash(imageBytes);
-        var hashValid = actualHash == capture.ExpectedHash;
+        var storedBytes = await _imageStorage.RetrieveAsync(capture.StorageKey, ct);
+
+        bool hashValid;
+        var extraction = _watermarkService.Extract(storedBytes);
+        if (!extraction.IsValid)
+        {
+            hashValid = false;
+        }
+        else
+        {
+            var originalBytes = storedBytes[..extraction.OriginalImageLength];
+            var actualHash = _hashService.ComputeHash(originalBytes);
+            hashValid = actualHash == capture.ExpectedHash;
+        }
 
         var device = await _devices.GetByIdAsync(capture.DeviceId, ct);
         var signatureValid = device is not null &&
@@ -61,8 +74,12 @@ public sealed class ServerVerifyCaptureQueryHandler
         await _auditLog.AppendAsync(
             AuditLog.Record(auditAction, captureId: capture.Id), ct);
 
+        var displayHash = extraction.IsValid
+            ? _hashService.ComputeHash(storedBytes[..extraction.OriginalImageLength]).Hex
+            : string.Empty;
+
         return new ServerVerifyResult(
             isValid, hashValid, signatureValid,
-            capture.StorageKey, capture.ExpectedHash.Hex, actualHash.Hex);
+            capture.StorageKey, capture.ExpectedHash.Hex, displayHash);
     }
 }

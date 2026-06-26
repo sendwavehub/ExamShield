@@ -11,6 +11,9 @@ public class ExamShieldDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<OcrResult> OcrResults => Set<OcrResult>();
+    public DbSet<ManualReview> ManualReviews => Set<ManualReview>();
+    public DbSet<Score> Scores => Set<Score>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ExamShieldDbContext).Assembly);
