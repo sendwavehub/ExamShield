@@ -3,6 +3,7 @@ using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
 using MediatR;
 
+
 namespace ExamShield.Application.Commands.ResetPassword;
 
 public sealed record ResetPasswordCommand(string Token, string NewPassword) : IRequest;
@@ -24,7 +25,8 @@ public sealed class ResetPasswordCommandHandler(
         var user = await users.FindByEmailAsync(new Email(token.Email), ct)
             ?? throw new InvalidResetTokenException();
 
-        user.ChangePassword(hasher.Hash(command.NewPassword));
+        var validatedPassword = new Password(command.NewPassword);
+        user.ChangePassword(hasher.Hash(validatedPassword.Value));
         token.MarkUsed();
 
         await users.SaveAsync(user, ct);
