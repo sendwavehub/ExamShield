@@ -261,6 +261,13 @@ export const api = {
   unenrollStudent: (examId: string, studentId: string) =>
     request<void>(`/exams/${examId}/students/${studentId}`, { method: 'DELETE' }),
 
+  bulkEnrollStudents: (examId: string, studentIds: string[]) =>
+    request<{ enrolled: number; alreadyEnrolled: number; total: number }>(
+      `/exams/${examId}/students/bulk`, {
+        method: 'POST',
+        body: JSON.stringify({ studentIds: studentIds.map(id => id.trim()).filter(Boolean) }),
+      }),
+
   getExamSubmissionStatus: (examId: string) =>
     request<ExamSubmissionStatusResponse>(`/exams/${examId}/submission-status`),
 

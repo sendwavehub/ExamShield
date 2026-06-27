@@ -2,6 +2,7 @@ using ExamShield.Api.Contracts;
 using ExamShield.Application.Commands.ActivateExam;
 using ExamShield.Application.Commands.CloseExam;
 using ExamShield.Application.Commands.CreateExam;
+using ExamShield.Application.Commands.BulkEnrollStudents;
 using ExamShield.Application.Commands.EnrollStudent;
 using ExamShield.Application.Commands.UnenrollStudent;
 using ExamShield.Application.Commands.SetAnswerKey;
@@ -110,6 +111,22 @@ public static class ExamEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .ProducesProblem(StatusCodes.Status404NotFound)
         .ProducesProblem(StatusCodes.Status409Conflict);
+
+        group.MapPost("/{id:guid}/students/bulk",
+            async (Guid id, BulkEnrollRequest request, IMediator mediator, CancellationToken ct) =>
+            {
+                if (request.StudentIds.Count == 0)
+                    return Results.BadRequest(new { error = "StudentIds must not be empty." });
+
+                var result = await mediator.Send(
+                    new BulkEnrollStudentsCommand(id, request.StudentIds), ct);
+                return Results.Ok(new BulkEnrollResponse(result.Enrolled, result.AlreadyEnrolled, result.Total));
+            })
+        .WithName("BulkEnrollStudents")
+        .RequireAuthorization("Administrator")
+        .Produces<BulkEnrollResponse>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapGet("/{id:guid}/students", async (Guid id, IMediator mediator, CancellationToken ct) =>
         {

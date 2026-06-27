@@ -42,10 +42,27 @@ export default function ExaminationsPage() {
 
   const [enrollExamId, setEnrollExamId] = useState<string | null>(null)
   const [newStudentId, setNewStudentId] = useState('')
+  const [bulkText, setBulkText]         = useState('')
+  const [bulkResult, setBulkResult]     = useState<{ enrolled: number; alreadyEnrolled: number } | null>(null)
+  const [bulkPending, setBulkPending]   = useState(false)
   const { data: candidatesData } = useExamCandidates(enrollExamId)
   const { data: statusData }    = useExamSubmissionStatus(enrollExamId)
   const enroll   = useEnrollStudent()
   const unenroll = useUnenrollStudent()
+
+  const handleBulkEnroll = async () => {
+    if (!enrollExamId) return
+    const ids = bulkText.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+    if (ids.length === 0) return
+    setBulkPending(true)
+    try {
+      const result = await api.bulkEnrollStudents(enrollExamId, ids)
+      setBulkResult(result)
+      setBulkText('')
+    } finally {
+      setBulkPending(false)
+    }
+  }
 
   if (isLoading) return <p>Loading...</p>
 
@@ -378,6 +395,31 @@ export default function ExaminationsPage() {
             {enroll.isError && (
               <p className="text-sm text-red-400">{String(enroll.error)}</p>
             )}
+
+            <div className="border-t border-border pt-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Bulk enroll (one UUID per line or comma-separated)</p>
+              <textarea
+                value={bulkText}
+                onChange={e => { setBulkText(e.target.value); setBulkResult(null) }}
+                rows={3}
+                placeholder="uuid1&#10;uuid2&#10;uuid3"
+                className="w-full rounded border px-3 py-1.5 text-sm bg-background font-mono text-xs"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleBulkEnroll}
+                  disabled={bulkPending || !bulkText.trim()}
+                  className="px-4 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {bulkPending ? 'Enrolling…' : 'Bulk Enroll'}
+                </button>
+                {bulkResult && (
+                  <span className="text-xs text-muted-foreground">
+                    ✓ {bulkResult.enrolled} enrolled, {bulkResult.alreadyEnrolled} skipped
+                  </span>
+                )}
+              </div>
+            </div>
 
             <div className="space-y-1 max-h-64 overflow-y-auto">
               {(candidatesData?.candidates ?? []).length === 0

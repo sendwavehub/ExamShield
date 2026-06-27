@@ -13,6 +13,8 @@ public sealed record ExamResponse(
     DateTimeOffset? ScheduledAt, DateTimeOffset? EndsAt);
 
 public sealed record EnrollStudentRequest(Guid StudentId);
+public sealed record BulkEnrollRequest(IReadOnlyList<Guid> StudentIds);
+public sealed record BulkEnrollResponse(int Enrolled, int AlreadyEnrolled, int Total);
 
 public sealed record StudentSubmissionItem(Guid StudentId, bool HasSubmitted, string? CaptureStatus);
 public sealed record ExamSubmissionStatusResponse(
