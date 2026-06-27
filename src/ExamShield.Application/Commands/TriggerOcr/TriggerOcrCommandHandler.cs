@@ -45,6 +45,10 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
         if (capture.StorageKey is null)
             throw new CaptureNotUploadedException(command.CaptureId);
 
+        var existingResult = await _ocrResults.GetByCaptureIdAsync(capture.Id, ct);
+        if (existingResult is not null)
+            throw new DuplicateOcrException(command.CaptureId);
+
         var settings    = await _systemSettings.GetAsync(ct);
         var storedBytes = await _imageStorage.RetrieveAsync(capture.StorageKey, ct);
         var wm          = _watermark.Extract(storedBytes);
