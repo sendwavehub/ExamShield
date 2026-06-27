@@ -16,13 +16,12 @@ public sealed class GetStudentResultsQueryHandler(
         var studentId = new StudentId(request.StudentId);
 
         // Scores already carry StudentId — no capture join needed for the score lookup.
-        var allScores = await scores.GetAllAsync(ct);
+        var allScores = await scores.GetPublishedAsync(ct);
         var studentScores = allScores.Where(s => s.StudentId == studentId).ToList();
 
         if (studentScores.Count == 0)
             return new GetStudentResultsResult(request.StudentId, []);
 
-        var captureIds = studentScores.Select(s => s.CaptureId).ToHashSet();
         var allCaptures = await captures.ListByStudentIdAsync(studentId, ct);
         var capturesById = allCaptures.ToDictionary(c => c.Id);
 
