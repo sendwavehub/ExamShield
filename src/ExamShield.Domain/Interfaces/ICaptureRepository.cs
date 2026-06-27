@@ -12,6 +12,7 @@ public interface ICaptureRepository
     Task<(IReadOnlyList<Capture> Items, int TotalCount)> ListPagedAsync(
         int page, int pageSize,
         ExamId? examId = null, CaptureStatus? status = null,
+        DeviceId? deviceId = null,
         CancellationToken ct = default);
     Task<IReadOnlyList<Capture>> ListByStatusAsync(CaptureStatus status, CancellationToken ct = default);
     Task<IReadOnlyList<Capture>> ListByStudentIdAsync(StudentId studentId, CancellationToken ct = default);

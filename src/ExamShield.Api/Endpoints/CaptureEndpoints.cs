@@ -24,7 +24,7 @@ public static class CaptureEndpoints
         app.MapGet("/captures", async (
             IMediator mediator, CancellationToken ct,
             int page = 1, int pageSize = 50,
-            Guid? examId = null, string? status = null) =>
+            Guid? examId = null, string? status = null, Guid? deviceId = null) =>
         {
             CaptureStatus? parsedStatus = null;
             if (status is not null)
@@ -34,7 +34,7 @@ public static class CaptureEndpoints
                 parsedStatus = s;
             }
 
-            var result = await mediator.Send(new GetCapturesQuery(page, pageSize, examId, parsedStatus), ct);
+            var result = await mediator.Send(new GetCapturesQuery(page, pageSize, examId, parsedStatus, deviceId), ct);
             var items = result.Captures
                 .Select(c => new CaptureListItem(
                     c.CaptureId, c.ExamId, c.StudentId, c.DeviceId,

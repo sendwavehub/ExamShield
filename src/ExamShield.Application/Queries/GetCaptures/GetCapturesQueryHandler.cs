@@ -9,10 +9,11 @@ public sealed class GetCapturesQueryHandler(ICaptureRepository captures)
 {
     public async Task<GetCapturesResult> Handle(GetCapturesQuery request, CancellationToken ct)
     {
-        var examId = request.ExamId.HasValue ? new ExamId(request.ExamId.Value) : (ExamId?)null;
+        var examId   = request.ExamId.HasValue   ? new ExamId(request.ExamId.Value)     : (ExamId?)null;
+        var deviceId = request.DeviceId.HasValue ? new DeviceId(request.DeviceId.Value) : (DeviceId?)null;
 
         var (items, total) = await captures.ListPagedAsync(
-            request.Page, request.PageSize, examId, request.Status, ct);
+            request.Page, request.PageSize, examId, request.Status, deviceId, ct);
 
         var dtos = items
             .Select(c => new CaptureDto(

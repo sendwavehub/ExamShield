@@ -1,10 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 
-export function useCaptures() {
+export function useCaptures(
+  page = 1, pageSize = 50,
+  examId?: string, status?: string, deviceId?: string
+) {
   return useQuery({
-    queryKey: ['captures'],
-    queryFn: () => api.getCaptures(),
+    queryKey: ['captures', page, pageSize, examId, status, deviceId],
+    queryFn: () => api.getCaptures(page, pageSize, examId, status, deviceId),
     refetchInterval: 30_000,
   })
 }
