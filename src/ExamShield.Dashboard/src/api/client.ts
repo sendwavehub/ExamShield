@@ -180,6 +180,15 @@ export const api = {
     }).then(r => r.blob())
   },
 
+  getUserById: (userId: string) =>
+    request<UserDetail>(`/users/${userId}`),
+
+  updateUserProfile: (userId: string, displayName: string | null) =>
+    request<void>(`/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ displayName }),
+    }),
+
   updateUserRole: (userId: string, role: string) =>
     request<void>(`/users/${userId}/role`, {
       method: 'PUT',
@@ -468,6 +477,11 @@ export interface UserItem {
   role: string
   isActive: boolean
   createdAt: string
+}
+
+export interface UserDetail extends UserItem {
+  displayName: string | null
+  mfaEnabled: boolean
 }
 export interface UserListResponse {
   users: UserItem[]

@@ -8,6 +8,26 @@ export function useUsers(page = 1, pageSize = 50, search?: string, role?: string
   })
 }
 
+export function useUserDetail(userId: string | null) {
+  return useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => api.getUserById(userId!),
+    enabled: userId !== null,
+  })
+}
+
+export function useUpdateUserProfile() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, displayName }: { userId: string; displayName: string | null }) =>
+      api.updateUserProfile(userId, displayName),
+    onSuccess: (_data, { userId }) => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+      qc.invalidateQueries({ queryKey: ['user', userId] })
+    },
+  })
+}
+
 export function useUpdateUserRole() {
   const qc = useQueryClient()
   return useMutation({

@@ -32,5 +32,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasConversion(
                 dt => dt.UtcTicks,
                 v => new DateTimeOffset(v, TimeSpan.Zero));
+
+        builder.Property(u => u.DisplayName).HasMaxLength(100).IsRequired(false);
     }
 }

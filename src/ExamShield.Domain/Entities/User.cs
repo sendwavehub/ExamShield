@@ -32,6 +32,23 @@ public sealed class User
 
     public bool MfaEnabled { get; private set; }
     public string? MfaSecret { get; private set; }
+    public string? DisplayName { get; private set; }
+
+    public void UpdateProfile(string? displayName)
+    {
+        if (displayName is not null)
+        {
+            if (string.IsNullOrWhiteSpace(displayName))
+                throw new ArgumentException("Display name cannot be empty or whitespace.", nameof(displayName));
+            if (displayName.Length > 100)
+                throw new ArgumentOutOfRangeException(nameof(displayName), "Display name cannot exceed 100 characters.");
+            DisplayName = displayName.Trim();
+        }
+        else
+        {
+            DisplayName = null;
+        }
+    }
 
     public void Deactivate() => IsActive = false;
 

@@ -3,6 +3,12 @@ namespace ExamShield.Api.Contracts;
 public sealed record UserResponse(
     Guid UserId, string Email, string Role, bool IsActive, DateTimeOffset CreatedAt);
 
+public sealed record UserDetailResponse(
+    Guid UserId, string Email, string? DisplayName,
+    string Role, bool IsActive, bool MfaEnabled, DateTimeOffset CreatedAt);
+
+public sealed record UpdateUserProfileRequest(string? DisplayName);
+
 public sealed record UserListResponse(
     IReadOnlyList<UserResponse> Users,
     int TotalCount,

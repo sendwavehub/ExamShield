@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useUsers, useUpdateUserRole, useDeactivateUser, useActivateUser } from '../hooks/useUsers'
+import { useUsers, useUpdateUserRole, useDeactivateUser, useActivateUser, useUpdateUserProfile } from '../hooks/useUsers'
 import StatusChip from '../components/ui/StatusChip'
 import Pagination from '../components/Pagination'
 import { api } from '../api/client'
@@ -18,9 +18,11 @@ export default function UsersPage() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const { data, isLoading } = useUsers(page, PAGE_SIZE, search || undefined, roleFilter || undefined)
-  const updateRole = useUpdateUserRole()
-  const deactivate = useDeactivateUser()
-  const activate   = useActivateUser()
+  const updateRole    = useUpdateUserRole()
+  const deactivate    = useDeactivateUser()
+  const activate      = useActivateUser()
+  const updateProfile = useUpdateUserProfile()
+  const [editingDisplayName, setEditingDisplayName] = useState<Record<string, string>>({})
 
   if (isLoading) return <p>Loading...</p>
 
@@ -82,6 +84,7 @@ export default function UsersPage() {
             <thead>
               <tr className="border-b text-left bg-muted/20">
                 <th className="py-2 px-4">Email</th>
+                <th className="py-2 px-4">Display Name</th>
                 <th className="py-2 px-4">Role</th>
                 <th className="py-2 px-4">Status</th>
                 <th className="py-2 px-4">Created</th>
@@ -92,6 +95,19 @@ export default function UsersPage() {
               {users.map(user => (
                 <tr key={user.userId} className="border-b hover:bg-muted/30">
                   <td className="py-2 px-4">{user.email}</td>
+                  <td className="py-2 px-4">
+                    <input
+                      type="text"
+                      placeholder="—"
+                      value={editingDisplayName[user.userId] ?? ''}
+                      onChange={e => setEditingDisplayName(p => ({ ...p, [user.userId]: e.target.value }))}
+                      onBlur={e => {
+                        const val = e.target.value.trim() || null
+                        updateProfile.mutate({ userId: user.userId, displayName: val })
+                      }}
+                      className="rounded border px-2 py-1 text-xs bg-background w-36"
+                    />
+                  </td>
                   <td className="py-2 px-4">
                     <select
                       value={user.role}
