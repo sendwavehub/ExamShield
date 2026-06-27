@@ -12,15 +12,19 @@ namespace ExamShield.UnitTests.Application.Commands;
 
 public sealed class MfaLoginLockoutTests
 {
-    private readonly IUserRepository _users = Substitute.For<IUserRepository>();
-    private readonly IPasswordHasher _hasher = Substitute.For<IPasswordHasher>();
-    private readonly IJwtTokenService _jwt = Substitute.For<IJwtTokenService>();
+    private readonly IUserRepository         _users         = Substitute.For<IUserRepository>();
+    private readonly IPasswordHasher         _hasher        = Substitute.For<IPasswordHasher>();
+    private readonly IJwtTokenService        _jwt           = Substitute.For<IJwtTokenService>();
     private readonly IRefreshTokenRepository _refreshTokens = Substitute.For<IRefreshTokenRepository>();
-    private readonly ITotpService _totp = Substitute.For<ITotpService>();
-    private readonly MfaLoginCommandHandler _sut;
+    private readonly ITotpService            _totp          = Substitute.For<ITotpService>();
+    private readonly ITotpUsedCodeCache      _usedCodes     = Substitute.For<ITotpUsedCodeCache>();
+    private readonly MfaLoginCommandHandler  _sut;
 
-    public MfaLoginLockoutTests() =>
-        _sut = new MfaLoginCommandHandler(_users, _hasher, _jwt, _refreshTokens, _totp);
+    public MfaLoginLockoutTests()
+    {
+        _usedCodes.IsUsedAsync(Arg.Any<string>(), Arg.Any<string>(), default).Returns(false);
+        _sut = new MfaLoginCommandHandler(_users, _hasher, _jwt, _refreshTokens, _totp, _usedCodes);
+    }
 
     private static User MakeMfaUser()
     {

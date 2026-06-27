@@ -102,6 +102,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IPasswordResetTokenRepository>();
             services.AddSingleton<IPasswordResetTokenRepository, InMemoryPasswordResetTokenRepository>();
 
+            services.RemoveAll<ITotpUsedCodeCache>();
+            services.AddSingleton<ITotpUsedCodeCache, InMemoryTotpUsedCodeCache>();
+
             // IPasswordHasher and IJwtTokenService stay — real BCrypt + real JWT for auth tests.
 
             // Clear all health check registrations — no external services run in tests.

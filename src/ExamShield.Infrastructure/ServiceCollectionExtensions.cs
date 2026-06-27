@@ -113,6 +113,7 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddSingleton<ITotpService, TotpService>();
+        services.AddSingleton<ITotpUsedCodeCache, InMemoryTotpUsedCodeCache>();
         services.AddHttpClient("Alerts");
         services.AddSingleton<IAlertService, AlertService>();
 

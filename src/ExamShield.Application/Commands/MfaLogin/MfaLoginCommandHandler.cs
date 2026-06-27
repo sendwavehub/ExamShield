@@ -15,14 +15,15 @@ public sealed class MfaLoginCommandHandler : IRequestHandler<MfaLoginCommand, Lo
     private readonly IJwtTokenService _jwt;
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly ITotpService _totp;
+    private readonly ITotpUsedCodeCache _usedCodes;
 
     public MfaLoginCommandHandler(
         IUserRepository users, IPasswordHasher hasher,
         IJwtTokenService jwt, IRefreshTokenRepository refreshTokens,
-        ITotpService totp)
+        ITotpService totp, ITotpUsedCodeCache usedCodes)
     {
         _users = users; _hasher = hasher; _jwt = jwt;
-        _refreshTokens = refreshTokens; _totp = totp;
+        _refreshTokens = refreshTokens; _totp = totp; _usedCodes = usedCodes;
     }
 
     public async Task<LoginResult> Handle(MfaLoginCommand command, CancellationToken ct)
@@ -49,6 +50,11 @@ public sealed class MfaLoginCommandHandler : IRequestHandler<MfaLoginCommand, Lo
             await _users.SaveAsync(user, ct);
             throw new InvalidCredentialsException();
         }
+
+        if (await _usedCodes.IsUsedAsync(user.Id.Value.ToString(), command.Code, ct))
+            throw new UnauthorizedAccessException("TOTP code replay detected.");
+
+        await _usedCodes.MarkUsedAsync(user.Id.Value.ToString(), command.Code, ct);
 
         user.ResetFailedLogin();
         await _users.SaveAsync(user, ct);
