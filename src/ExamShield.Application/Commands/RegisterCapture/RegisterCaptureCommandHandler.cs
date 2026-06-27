@@ -46,6 +46,9 @@ public sealed class RegisterCaptureCommandHandler
         if (exam.Status != ExamStatus.Active)
             throw new ExamNotActiveException(command.ExamId);
 
+        if (exam.EndsAt is not null && DateTimeOffset.UtcNow > exam.EndsAt)
+            throw new ExamExpiredException(command.ExamId, exam.EndsAt.Value);
+
         var device = await _devices.GetByIdAsync(deviceId, ct)
             ?? throw new DeviceNotFoundException(command.DeviceId);
 

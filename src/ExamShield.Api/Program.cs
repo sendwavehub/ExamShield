@@ -99,6 +99,7 @@ app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async ctx =>
         InvalidSignatureException    => (400, ex.Message),
         CaptureNotUploadedException  => (400, ex.Message),
         ExamNotActiveException       => (422, ex.Message),
+        ExamExpiredException         => (422, ex.Message),
         OcrResultNotFoundException      => (404, ex.Message),
         ManualReviewNotFoundException   => (404, ex.Message),
         InvalidCredentialsException  => (401, ex.Message),
