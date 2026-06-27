@@ -1,6 +1,7 @@
 using ExamShield.Api.Contracts;
 using ExamShield.Application.Commands.DeactivateUser;
 using ExamShield.Application.Commands.UpdateUserRole;
+using ExamShield.Application.Queries.ExportUsers;
 using ExamShield.Application.Queries.GetUsers;
 using MediatR;
 
@@ -25,6 +26,20 @@ public static class UserEndpoints
         })
         .WithName("GetUsers")
         .Produces<UserListResponse>();
+
+        group.MapGet("/export", async (
+            IMediator mediator, CancellationToken ct,
+            string? search = null, string? role = null) =>
+        {
+            var result = await mediator.Send(new ExportUsersQuery(search, role), ct);
+            return Results.File(
+                System.Text.Encoding.UTF8.GetBytes(result.Csv),
+                "text/csv",
+                result.Filename);
+        })
+        .WithName("ExportUsers")
+        .RequireAuthorization("Auditor")
+        .Produces(StatusCodes.Status200OK, contentType: "text/csv");
 
         group.MapPut("/{userId:guid}/role", async (
             Guid userId, UpdateUserRoleRequest request, IMediator mediator, CancellationToken ct) =>

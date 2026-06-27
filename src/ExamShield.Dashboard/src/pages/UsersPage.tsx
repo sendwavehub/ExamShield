@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useUsers, useUpdateUserRole, useDeactivateUser } from '../hooks/useUsers'
 import StatusChip from '../components/ui/StatusChip'
 import Pagination from '../components/Pagination'
+import { api } from '../api/client'
 
 const ALL_ROLES = [
   'Administrator', 'Operator', 'Supervisor', 'Auditor',
@@ -49,6 +50,19 @@ export default function UsersPage() {
             <option key={r} value={r}>{r || 'All roles'}</option>
           ))}
         </select>
+        <button
+          onClick={() => api.exportUsers(search || undefined, roleFilter || undefined).then(blob => {
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `users-${Date.now()}.csv`
+            a.click()
+            URL.revokeObjectURL(url)
+          })}
+          className="px-3 py-1.5 rounded border border-[#30363D] bg-[#161B22] text-sm text-[#8B949E] hover:text-white"
+        >
+          Export CSV
+        </button>
         {(search || roleFilter) && (
           <button
             onClick={() => { setSearch(''); setRoleFilter(''); setPage(1) }}

@@ -159,6 +159,16 @@ export const api = {
     return request<UserListResponse>(`/users/?${params}`)
   },
 
+  exportUsers: (search?: string, role?: string) => {
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (role) params.set('role', role)
+    const query = params.toString() ? `?${params}` : ''
+    return fetch(`${BASE_URL}/users/export${query}`, {
+      headers: { ...authHeaders() },
+    }).then(r => r.blob())
+  },
+
   updateUserRole: (userId: string, role: string) =>
     request<void>(`/users/${userId}/role`, {
       method: 'PUT',
