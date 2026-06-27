@@ -30,3 +30,17 @@ export function useBatchScore() {
     },
   })
 }
+
+export function useExportScores() {
+  return useMutation({
+    mutationFn: (examId?: string) =>
+      api.exportScores(examId).then(blob => {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = examId ? `scores-${examId.slice(0, 8)}.csv` : 'scores.csv'
+        a.click()
+        URL.revokeObjectURL(url)
+      }),
+  })
+}

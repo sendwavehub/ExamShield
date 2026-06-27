@@ -2,6 +2,7 @@ using ExamShield.Api.Contracts;
 using ExamShield.Application.Commands.BatchScore;
 using ExamShield.Application.Commands.PublishResults;
 using ExamShield.Application.Commands.ScoreCapture;
+using ExamShield.Application.Queries.ExportScores;
 using ExamShield.Application.Queries.GetResults;
 using ExamShield.Application.Queries.GetScoringQueue;
 using ExamShield.Application.Queries.GetStatistics;
@@ -62,6 +63,19 @@ public static class ScoreEndpoints
             return Results.Ok(new GetResultsResponse(items));
         })
         .RequireAuthorization("Operator");
+
+        app.MapGet("/score/export",
+            async (Guid? examId, IMediator mediator, CancellationToken ct) =>
+            {
+                var result = await mediator.Send(new ExportScoresQuery(examId), ct);
+                return Results.File(
+                    System.Text.Encoding.UTF8.GetBytes(result.Csv),
+                    "text/csv",
+                    result.Filename);
+            })
+        .WithName("ExportScores")
+        .RequireAuthorization("Auditor")
+        .Produces(StatusCodes.Status200OK, contentType: "text/csv");
 
         app.MapGet("/statistics", async (IMediator mediator, CancellationToken ct) =>
         {

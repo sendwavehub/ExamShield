@@ -239,6 +239,13 @@ export const api = {
       headers: { ...authHeaders() },
     }).then(r => r.blob()),
 
+  exportScores: (examId?: string) => {
+    const query = examId ? `?examId=${examId}` : ''
+    return fetch(`${BASE_URL}/score/export${query}`, {
+      headers: { ...authHeaders() },
+    }).then(r => r.blob())
+  },
+
   getRoles: () => request<RoleListResponse>('/roles'),
 
   getResults: () => request<GetResultsResponse>('/results'),

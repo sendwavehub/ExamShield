@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { useScoringQueue, useScoreCapture, useBatchScore } from '../hooks/useScoring'
+import { useScoringQueue, useScoreCapture, useBatchScore, useExportScores } from '../hooks/useScoring'
 
 export default function ScoringPage() {
   const { data, isLoading } = useScoringQueue()
   const score = useScoreCapture()
   const batch = useBatchScore()
+  const exportScores = useExportScores()
 
   const [batchExamId, setBatchExamId] = useState('')
   const [batchResult, setBatchResult] = useState<{ scored: number; skipped: number } | null>(null)
+  const [exportExamId, setExportExamId] = useState('')
 
   if (isLoading) return <p>Loading...</p>
 
@@ -54,6 +56,26 @@ export default function ScoringPage() {
         {batch.isError && (
           <p className="text-sm text-red-400">{String(batch.error)}</p>
         )}
+      </div>
+
+      {/* Export CSV */}
+      <div className="rounded-lg border p-4 space-y-3 max-w-md">
+        <h2 className="text-sm font-semibold">Export Scores</h2>
+        <div className="flex gap-2">
+          <input
+            value={exportExamId}
+            onChange={e => setExportExamId(e.target.value)}
+            placeholder="Exam ID (leave blank for all)"
+            className="flex-1 rounded border px-3 py-1.5 text-sm bg-background"
+          />
+          <button
+            onClick={() => exportScores.mutate(exportExamId || undefined)}
+            disabled={exportScores.isPending}
+            className="px-4 py-1.5 rounded bg-secondary text-secondary-foreground text-sm hover:bg-secondary/80 disabled:opacity-50"
+          >
+            {exportScores.isPending ? 'Exporting…' : 'Export CSV'}
+          </button>
+        </div>
       </div>
 
       {/* Individual queue */}
