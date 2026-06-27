@@ -43,6 +43,13 @@ public sealed class InMemoryReviewRequestRepository : IReviewRequestRepository
                 .OrderByDescending(r => r.CreatedAt)
                 .ToList());
 
+    public Task<bool> ExistsPendingForCaptureAsync(
+        CaptureId captureId, StudentId studentId, CancellationToken ct = default) =>
+        Task.FromResult(_store.Values.Any(r =>
+            r.CaptureId == captureId &&
+            r.StudentId == studentId &&
+            r.Status == ReviewRequestStatus.Pending));
+
     public Task<IReadOnlyList<ReviewRequest>> ListByCaptureIdsAsync(
         IReadOnlyList<CaptureId> captureIds, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<ReviewRequest>>(

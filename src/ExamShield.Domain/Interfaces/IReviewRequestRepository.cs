@@ -11,5 +11,6 @@ public interface IReviewRequestRepository
     Task UpdateAsync(ReviewRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<ReviewRequest>> ListAllAsync(ReviewRequestStatus? status = null, CancellationToken ct = default);
     Task<IReadOnlyList<ReviewRequest>> ListByStudentAsync(StudentId studentId, CancellationToken ct = default);
+    Task<bool> ExistsPendingForCaptureAsync(CaptureId captureId, StudentId studentId, CancellationToken ct = default);
     Task<IReadOnlyList<ReviewRequest>> ListByCaptureIdsAsync(IReadOnlyList<CaptureId> captureIds, CancellationToken ct = default);
 }

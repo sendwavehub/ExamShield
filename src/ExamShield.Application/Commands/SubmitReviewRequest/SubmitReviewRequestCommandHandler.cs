@@ -1,5 +1,6 @@
 using ExamShield.Domain.Entities;
 using ExamShield.Domain.Enums;
+using ExamShield.Domain.Exceptions;
 using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
 using MediatR;
@@ -27,6 +28,9 @@ public sealed class SubmitReviewRequestCommandHandler(
         if (capture.StudentId != studentId)
             throw new UnauthorizedAccessException(
                 $"Student '{command.StudentId}' does not own capture '{command.CaptureId}'.");
+
+        if (await reviewRequests.ExistsPendingForCaptureAsync(captureId, studentId, ct))
+            throw new DuplicateReviewRequestException(command.CaptureId);
 
         var request = ReviewRequest.Submit(studentId, captureId, command.Reason);
 

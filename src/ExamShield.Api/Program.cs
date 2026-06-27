@@ -109,6 +109,7 @@ app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async ctx =>
         InvalidCredentialsException  => (401, ex.Message),
         UserAlreadyExistsException          => (409, ex.Message),
         DuplicateDevicePublicKeyException   => (409, ex.Message),
+        DuplicateReviewRequestException     => (409, ex.Message),
         DuplicateScoreException      => (409, ex.Message),
         DuplicateOcrException        => (409, ex.Message),
         UserNotFoundException        => (404, ex.Message),
