@@ -330,6 +330,21 @@ export const api = {
       body: JSON.stringify({ answers }),
     }),
 
+  approveReview: (reviewId: string) =>
+    request<void>(`/reviews/${reviewId}/approve`, { method: 'PUT' }),
+
+  rejectReview: (reviewId: string, reason: string) =>
+    request<void>(`/reviews/${reviewId}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    }),
+
+  escalateReview: (reviewId: string, reason: string) =>
+    request<void>(`/reviews/${reviewId}/escalate`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    }),
+
   getLoginHistory: (limit = 100) =>
     request<LoginHistoryResponse>(`/security/login-history?limit=${limit}`),
 
