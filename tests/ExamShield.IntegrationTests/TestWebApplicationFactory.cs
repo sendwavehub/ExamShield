@@ -96,6 +96,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IRefreshTokenRepository>();
             services.AddSingleton<IRefreshTokenRepository, InMemoryRefreshTokenRepository>();
 
+            services.RemoveAll<IPasswordResetTokenRepository>();
+            services.AddSingleton<IPasswordResetTokenRepository, InMemoryPasswordResetTokenRepository>();
+
             // IPasswordHasher and IJwtTokenService stay — real BCrypt + real JWT for auth tests.
 
             // Clear all health check registrations — no external services run in tests.
@@ -126,5 +129,23 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         var client = CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;
+    }
+
+    public async Task<string> RequestPasswordResetTokenAsync(string email)
+    {
+        using var scope = Services.CreateScope();
+        var repo  = scope.ServiceProvider.GetRequiredService<IPasswordResetTokenRepository>();
+        var token = PasswordResetToken.Create(email);
+        await repo.AddAsync(token);
+        return token.Token;
+    }
+
+    public async Task<string> RequestExpiredPasswordResetTokenAsync(string email)
+    {
+        using var scope = Services.CreateScope();
+        var repo  = scope.ServiceProvider.GetRequiredService<IPasswordResetTokenRepository>();
+        var token = PasswordResetToken.Create(email, expiresAt: DateTimeOffset.UtcNow.AddHours(-1));
+        await repo.AddAsync(token);
+        return token.Token;
     }
 }

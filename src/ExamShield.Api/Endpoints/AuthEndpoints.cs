@@ -2,10 +2,12 @@ using ExamShield.Api.Contracts;
 using ExamShield.Api.RateLimiting;
 using ExamShield.Application.Commands.ChangePassword;
 using ExamShield.Application.Commands.CreateUser;
+using ExamShield.Application.Commands.ForgotPassword;
 using ExamShield.Application.Commands.Login;
 using ExamShield.Application.Commands.Logout;
 using ExamShield.Application.Commands.MfaLogin;
 using ExamShield.Application.Commands.Refresh;
+using ExamShield.Application.Commands.ResetPassword;
 using ExamShield.Application.Commands.RevokeSession;
 using ExamShield.Application.Queries.GetProfile;
 using ExamShield.Application.Queries.ListActiveSessions;
@@ -53,6 +55,17 @@ public static class AuthEndpoints
             .RequireAuthorization()
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
+
+        group.MapPost("/password/forgot", ForgotPasswordAsync)
+            .WithName("ForgotPassword")
+            .AllowAnonymous()
+            .Produces(StatusCodes.Status204NoContent);
+
+        group.MapPost("/password/reset", ResetPasswordAsync)
+            .WithName("ResetPassword")
+            .AllowAnonymous()
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest);
 
         group.MapGet("/profile", GetProfileAsync)
             .WithName("GetProfile")
@@ -191,5 +204,26 @@ public static class AuthEndpoints
 
         var result = await sender.Send(new CreateUserCommand(request.Email, request.Password, role), ct);
         return Results.Created($"/auth/users/{result.UserId}", new CreateUserResponse(result.UserId));
+    }
+
+    private static async Task<IResult> ForgotPasswordAsync(
+        ForgotPasswordRequest request, ISender sender, CancellationToken ct)
+    {
+        await sender.Send(new ForgotPasswordCommand(request.Email), ct);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> ResetPasswordAsync(
+        ResetPasswordRequest request, ISender sender, CancellationToken ct)
+    {
+        try
+        {
+            await sender.Send(new ResetPasswordCommand(request.Token, request.NewPassword), ct);
+            return Results.NoContent();
+        }
+        catch (InvalidResetTokenException)
+        {
+            return Results.BadRequest(new { title = "Invalid or expired reset token.", status = 400 });
+        }
     }
 }

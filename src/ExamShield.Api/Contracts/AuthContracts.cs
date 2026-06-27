@@ -8,6 +8,9 @@ public sealed record MfaLoginRequest(string Email, string Password, string Code)
 
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 
+public sealed record ForgotPasswordRequest(string Email);
+public sealed record ResetPasswordRequest(string Token, string NewPassword);
+
 public sealed record ProfileResponse(string Email, string Role, bool MfaEnabled);
 public sealed record SessionResponse(Guid Id, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt);
 public sealed record SessionsResponse(IReadOnlyList<SessionResponse> Sessions);
