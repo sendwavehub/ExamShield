@@ -372,6 +372,9 @@ export const api = {
 
   revokeSession: (sessionId: string) =>
     request<void>(`/auth/sessions/${sessionId}`, { method: 'DELETE' }),
+
+  getExamRankings: (examId: string) =>
+    request<ExamRankingsResponse>(`/score/rankings/${examId}`),
 }
 
 export interface CaptureItem {
@@ -428,6 +431,19 @@ export interface ExamListResponse {
   page: number
   pageSize: number
   totalPages: number
+}
+
+export interface RankingEntry {
+  rank: number
+  studentId: string
+  correctAnswers: number
+  totalQuestions: number
+  percentage: number
+}
+
+export interface ExamRankingsResponse {
+  examId: string
+  rankings: RankingEntry[]
 }
 
 export interface CreateExamPayload {

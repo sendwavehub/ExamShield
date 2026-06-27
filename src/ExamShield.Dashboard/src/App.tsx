@@ -21,6 +21,7 @@ import StudentPortalPage from './pages/StudentPortalPage'
 import MfaPage from './pages/MfaPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import AnswerSheetsPage from './pages/AnswerSheetsPage'
+import RankingsPage from './pages/RankingsPage'
 import AppLayout from './components/layout/AppLayout'
 import { useDashboardStats } from './hooks/useDashboardStats'
 import { useNotifications } from './hooks/useNotifications'
@@ -84,6 +85,7 @@ export default function App() {
                     <Route path="/exams" element={<ExaminationsPage />} />
                     <Route path="/users" element={<UsersPage />} />
                     <Route path="/scoring" element={<ScoringPage />} />
+                    <Route path="/rankings" element={<RankingsPage />} />
                     <Route path="/captures" element={<CaptureSessionsPage />} />
                     <Route path="/roles" element={<RolesPage />} />
                     <Route path="/reports" element={<ReportsPage />} />
