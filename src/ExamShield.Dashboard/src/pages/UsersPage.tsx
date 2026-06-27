@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useUsers, useUpdateUserRole, useDeactivateUser } from '../hooks/useUsers'
+import { useUsers, useUpdateUserRole, useDeactivateUser, useActivateUser } from '../hooks/useUsers'
 import StatusChip from '../components/ui/StatusChip'
 import Pagination from '../components/Pagination'
 import { api } from '../api/client'
@@ -20,6 +20,7 @@ export default function UsersPage() {
   const { data, isLoading } = useUsers(page, PAGE_SIZE, search || undefined, roleFilter || undefined)
   const updateRole = useUpdateUserRole()
   const deactivate = useDeactivateUser()
+  const activate   = useActivateUser()
 
   if (isLoading) return <p>Loading...</p>
 
@@ -115,13 +116,21 @@ export default function UsersPage() {
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
                   <td className="py-2 px-4">
-                    {user.isActive && (
+                    {user.isActive ? (
                       <button
                         onClick={() => deactivate.mutate(user.userId)}
                         disabled={deactivate.isPending}
                         className="px-3 py-1 text-xs rounded border border-red-500 text-red-500 hover:bg-red-500/10 disabled:opacity-50"
                       >
                         Deactivate
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => activate.mutate(user.userId)}
+                        disabled={activate.isPending}
+                        className="px-3 py-1 text-xs rounded border border-green-500 text-green-500 hover:bg-green-500/10 disabled:opacity-50"
+                      >
+                        Activate
                       </button>
                     )}
                   </td>

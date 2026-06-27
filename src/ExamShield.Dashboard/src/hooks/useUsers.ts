@@ -24,3 +24,11 @@ export function useDeactivateUser() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   })
 }
+
+export function useActivateUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (userId: string) => api.activateUser(userId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+  })
+}

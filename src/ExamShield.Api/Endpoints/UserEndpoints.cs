@@ -1,5 +1,7 @@
 using ExamShield.Api.Contracts;
 using ExamShield.Application.Commands.DeactivateUser;
+using ExamShield.Application.Commands.ReactivateUser;
+using ExamShield.Domain.Exceptions;
 using ExamShield.Application.Commands.UpdateUserRole;
 using ExamShield.Application.Queries.ExportUsers;
 using ExamShield.Application.Queries.GetUsers;
@@ -61,6 +63,28 @@ public static class UserEndpoints
         .WithName("DeactivateUser")
         .Produces(StatusCodes.Status204NoContent)
         .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPut("/{userId:guid}/activate", async (
+            Guid userId, IMediator mediator, CancellationToken ct) =>
+        {
+            try
+            {
+                await mediator.Send(new ReactivateUserCommand(userId), ct);
+                return Results.NoContent();
+            }
+            catch (UserNotFoundException)
+            {
+                return Results.NotFound();
+            }
+            catch (InvalidOperationException e)
+            {
+                return Results.UnprocessableEntity(new { error = e.Message });
+            }
+        })
+        .WithName("ReactivateUser")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status404NotFound)
+        .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         return app;
     }

@@ -35,6 +35,13 @@ public sealed class User
 
     public void Deactivate() => IsActive = false;
 
+    public void Reactivate()
+    {
+        if (IsActive)
+            throw new InvalidOperationException("User is already active.");
+        IsActive = true;
+    }
+
     public void ChangePassword(string newHash)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(newHash, nameof(newHash));
