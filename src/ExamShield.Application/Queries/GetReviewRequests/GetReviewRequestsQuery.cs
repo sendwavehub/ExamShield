@@ -4,7 +4,7 @@ namespace ExamShield.Application.Queries.GetReviewRequests;
 
 public sealed record ReviewRequestDto(
     Guid ReviewRequestId, Guid StudentId, Guid CaptureId,
-    string Reason, string Status, DateTimeOffset CreatedAt);
+    string Reason, string Status, string? ResolutionNote, DateTimeOffset CreatedAt);
 
 public sealed record GetReviewRequestsResult(IReadOnlyList<ReviewRequestDto> Items);
 

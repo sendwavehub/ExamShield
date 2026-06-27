@@ -214,6 +214,21 @@ export const api = {
       body: JSON.stringify({ captureId, studentId, reason }),
     }),
 
+  getStudentReviewRequests: (studentId: string) =>
+    request<{ items: ReviewRequestItem[] }>(`/student/review-requests?studentId=${studentId}`),
+
+  resolveReviewRequest: (id: string, note: string) =>
+    request<void>(`/student/review-requests/${id}/resolve`, {
+      method: 'PUT',
+      body: JSON.stringify({ note }),
+    }),
+
+  rejectReviewRequest: (id: string, note: string) =>
+    request<void>(`/student/review-requests/${id}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ note }),
+    }),
+
   activateExam: (examId: string) =>
     request<void>(`/exams/${examId}/activate`, { method: 'PUT' }),
 
@@ -428,6 +443,16 @@ export interface UserListResponse {
   page: number
   pageSize: number
   totalPages: number
+}
+
+export interface ReviewRequestItem {
+  reviewRequestId: string
+  studentId: string
+  captureId: string
+  reason: string
+  status: string
+  resolutionNote: string | null
+  createdAt: string
 }
 
 export interface ExamItem {

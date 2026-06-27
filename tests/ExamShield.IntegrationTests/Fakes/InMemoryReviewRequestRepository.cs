@@ -18,6 +18,12 @@ public sealed class InMemoryReviewRequestRepository : IReviewRequestRepository
     public Task<ReviewRequest?> GetByIdAsync(ReviewRequestId id, CancellationToken ct = default) =>
         Task.FromResult(_store.TryGetValue(id, out var r) ? r : null);
 
+    public Task UpdateAsync(ReviewRequest request, CancellationToken ct = default)
+    {
+        _store[request.Id] = request;
+        return Task.CompletedTask;
+    }
+
     public Task<IReadOnlyList<ReviewRequest>> ListByStudentAsync(
         StudentId studentId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<ReviewRequest>>(

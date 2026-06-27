@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, Shield, Monitor, ChevronLeft, Bell, User, Menu,
   ClipboardList, ScanLine, Eye, Star, BarChart2, Users, Settings, Search, ShieldCheck,
-  BookOpen, KeyRound, FileImage, Trophy, MonitorSmartphone,
+  BookOpen, KeyRound, FileImage, Trophy, MonitorSmartphone, MessageSquareWarning,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
@@ -13,7 +13,8 @@ const NAV_ITEMS = [
   { label: 'Capture Sessions', href: '/captures',   icon: Monitor         },
   { label: 'Answer Sheets',   href: '/answer-sheets', icon: FileImage     },
   { label: 'OCR Queue',        href: '/ocr-queue',  icon: ScanLine        },
-  { label: 'Manual Review',    href: '/review',     icon: Eye             },
+  { label: 'Manual Review',    href: '/review',          icon: Eye                    },
+  { label: 'Review Requests', href: '/review-requests', icon: MessageSquareWarning   },
   { label: 'Scoring',          href: '/scoring',    icon: Star            },
   { label: 'Rankings',         href: '/rankings',   icon: Trophy          },
   { label: 'Results',          href: '/results',    icon: BarChart2       },

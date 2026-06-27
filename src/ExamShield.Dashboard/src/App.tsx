@@ -23,6 +23,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import AnswerSheetsPage from './pages/AnswerSheetsPage'
 import RankingsPage from './pages/RankingsPage'
 import SessionManagementPage from './pages/SessionManagementPage'
+import ReviewRequestsPage from './pages/ReviewRequestsPage'
 import AppLayout from './components/layout/AppLayout'
 import { useDashboardStats } from './hooks/useDashboardStats'
 import { useNotifications } from './hooks/useNotifications'
@@ -95,6 +96,7 @@ export default function App() {
                     <Route path="/mfa" element={<MfaPage />} />
                     <Route path="/answer-sheets" element={<AnswerSheetsPage />} />
                     <Route path="/student" element={<StudentPortalPage />} />
+                    <Route path="/review-requests" element={<ReviewRequestsPage />} />
                   </Routes>
                 </AppLayout>
               </ProtectedRoute>

@@ -1,7 +1,10 @@
 using ExamShield.Api.Contracts;
+using ExamShield.Application.Commands.RejectReviewRequest;
+using ExamShield.Application.Commands.ResolveReviewRequest;
 using ExamShield.Application.Commands.SubmitReviewRequest;
 using ExamShield.Application.Queries.GetReviewRequests;
 using ExamShield.Application.Queries.GetStudentResults;
+using ExamShield.Domain.Exceptions;
 using MediatR;
 
 namespace ExamShield.Api.Endpoints;
@@ -53,7 +56,7 @@ public static class StudentEndpoints
                 var items = result.Items
                     .Select(r => new ReviewRequestItemResponse(
                         r.ReviewRequestId, r.StudentId, r.CaptureId,
-                        r.Reason, r.Status, r.CreatedAt))
+                        r.Reason, r.Status, r.ResolutionNote, r.CreatedAt))
                     .ToList();
                 return Results.Ok(new ReviewRequestListResponse(items));
             })
@@ -62,6 +65,54 @@ public static class StudentEndpoints
         .RequireAuthorization("Operator")
         .Produces<ReviewRequestListResponse>()
         .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        app.MapPut("/student/review-requests/{id:guid}/resolve",
+            async (Guid id, ProcessReviewRequestBody body, ISender sender, CancellationToken ct) =>
+            {
+                try
+                {
+                    await sender.Send(new ResolveReviewRequestCommand(id, body.Note), ct);
+                    return Results.NoContent();
+                }
+                catch (ReviewRequestNotFoundException)
+                {
+                    return Results.NotFound();
+                }
+                catch (InvalidOperationException e)
+                {
+                    return Results.UnprocessableEntity(new { error = e.Message });
+                }
+            })
+        .WithName("ResolveReviewRequest")
+        .WithTags("Student")
+        .RequireAuthorization("Supervisor")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status404NotFound)
+        .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        app.MapPut("/student/review-requests/{id:guid}/reject",
+            async (Guid id, ProcessReviewRequestBody body, ISender sender, CancellationToken ct) =>
+            {
+                try
+                {
+                    await sender.Send(new RejectReviewRequestCommand(id, body.Note), ct);
+                    return Results.NoContent();
+                }
+                catch (ReviewRequestNotFoundException)
+                {
+                    return Results.NotFound();
+                }
+                catch (InvalidOperationException e)
+                {
+                    return Results.UnprocessableEntity(new { error = e.Message });
+                }
+            })
+        .WithName("RejectStudentReviewRequest")
+        .WithTags("Student")
+        .RequireAuthorization("Supervisor")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status404NotFound)
+        .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         return app;
     }

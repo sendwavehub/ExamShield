@@ -16,6 +16,12 @@ public sealed class ReviewRequestRepository(ExamShieldDbContext context) : IRevi
     public Task<ReviewRequest?> GetByIdAsync(ReviewRequestId id, CancellationToken ct = default) =>
         context.ReviewRequests.FirstOrDefaultAsync(r => r.Id == id, ct);
 
+    public async Task UpdateAsync(ReviewRequest request, CancellationToken ct = default)
+    {
+        context.ReviewRequests.Update(request);
+        await context.SaveChangesAsync(ct);
+    }
+
     public Task<IReadOnlyList<ReviewRequest>> ListByStudentAsync(
         StudentId studentId, CancellationToken ct = default) =>
         context.ReviewRequests

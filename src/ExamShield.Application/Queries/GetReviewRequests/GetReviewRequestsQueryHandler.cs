@@ -15,7 +15,7 @@ public sealed class GetReviewRequestsQueryHandler(IReviewRequestRepository repos
         var dtos = items
             .Select(r => new ReviewRequestDto(
                 r.Id.Value, r.StudentId.Value, r.CaptureId.Value,
-                r.Reason, r.Status.ToString(), r.CreatedAt))
+                r.Reason, r.Status.ToString(), r.ResolutionNote, r.CreatedAt))
             .ToList();
         return new GetReviewRequestsResult(dtos);
     }

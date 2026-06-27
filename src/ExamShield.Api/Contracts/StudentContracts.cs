@@ -5,9 +5,11 @@ public sealed record SubmitReviewRequestResponse(Guid ReviewRequestId);
 
 public sealed record ReviewRequestItemResponse(
     Guid ReviewRequestId, Guid StudentId, Guid CaptureId,
-    string Reason, string Status, DateTimeOffset CreatedAt);
+    string Reason, string Status, string? ResolutionNote, DateTimeOffset CreatedAt);
 
 public sealed record ReviewRequestListResponse(IReadOnlyList<ReviewRequestItemResponse> Items);
+
+public sealed record ProcessReviewRequestBody(string Note);
 
 public sealed record StudentResultItemResponse(
     Guid ScoreId, Guid CaptureId, Guid ExamId, string ExamName,

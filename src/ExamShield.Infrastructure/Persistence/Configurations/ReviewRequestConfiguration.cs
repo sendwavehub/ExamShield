@@ -28,6 +28,10 @@ public sealed class ReviewRequestConfiguration : IEntityTypeConfiguration<Review
         builder.Property(e => e.Status)
             .HasConversion<int>();
 
+        builder.Property(e => e.ResolutionNote)
+            .HasMaxLength(2000)
+            .IsRequired(false);
+
         builder.Property(e => e.CreatedAt)
             .HasConversion(dto => dto.UtcTicks, ticks => new DateTimeOffset(ticks, TimeSpan.Zero));
 
