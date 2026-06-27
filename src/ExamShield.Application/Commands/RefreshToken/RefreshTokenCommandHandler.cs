@@ -23,7 +23,7 @@ public sealed class RefreshTokenCommandHandler(
         var user = await users.GetByIdAsync(stored.UserId, ct)
             ?? throw new InvalidCredentialsException();
 
-        if (!user.IsActive)
+        if (!user.IsActive || user.IsLockedOut)
             throw new InvalidCredentialsException();
 
         // Revoke used token (rotation — single use)
