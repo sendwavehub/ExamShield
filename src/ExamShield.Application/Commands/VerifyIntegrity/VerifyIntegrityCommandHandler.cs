@@ -36,17 +36,18 @@ public sealed class VerifyIntegrityCommandHandler
         var capture = await _repository.GetByIdAsync(new CaptureId(command.CaptureId), ct)
             ?? throw new CaptureNotFoundException(command.CaptureId);
 
-        var isValid = capture.VerifyIntegrity(actualHash);
-
-        await _repository.UpdateAsync(capture, ct);
+        // Compare only — never mutate capture status based on client-supplied bytes.
+        // Only server-side re-verification (GET /verify/{id}) or watermark checks may set Tampered.
+        var isValid = actualHash == capture.ExpectedHash;
 
         if (!isValid)
             await _alertService.SendAsync(AlertType.TamperingDetected,
-                $"Tampering detected on capture {capture.Id.Value}.", ct);
+                $"Client-side hash mismatch reported for capture {capture.Id.Value}.", ct);
 
-        var auditAction = isValid ? AuditAction.HashVerified : AuditAction.TamperingDetected;
         await _auditLog.AppendAsync(
-            AuditLog.Record(auditAction, captureId: capture.Id), ct);
+            AuditLog.Record(
+                isValid ? AuditAction.HashVerified : AuditAction.TamperingDetected,
+                captureId: capture.Id), ct);
 
         return new VerifyIntegrityResult(isValid, capture.ExpectedHash.Hex, actualHash.Hex);
     }

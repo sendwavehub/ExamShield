@@ -90,7 +90,7 @@ public sealed class VerifyIntegrityCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AfterVerification_PersistsCaptureStatusChange()
+    public async Task Handle_NeverPersistsCaptureStatusChange()
     {
         var correctHash = Hash.FromBytes(SHA256.HashData(SampleImage));
         var capture = CaptureWithHash(correctHash);
@@ -98,8 +98,8 @@ public sealed class VerifyIntegrityCommandHandlerTests
 
         await _sut.Handle(new VerifyIntegrityCommand(capture.Id.Value, SampleImage), default);
 
-        await _repository.Received(1).UpdateAsync(
-            Arg.Is<Capture>(c => c.Status == CaptureStatus.Verified), Arg.Any<CancellationToken>());
+        // Client-supplied verify is read-only: must never write back capture status.
+        await _repository.DidNotReceive().UpdateAsync(Arg.Any<Capture>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
