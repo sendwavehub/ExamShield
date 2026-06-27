@@ -19,3 +19,4 @@ public sealed record ReviewDetailResponse(
 );
 
 public sealed record RejectReviewRequest(string Reason);
+public sealed record EscalateReviewRequest(string Reason);

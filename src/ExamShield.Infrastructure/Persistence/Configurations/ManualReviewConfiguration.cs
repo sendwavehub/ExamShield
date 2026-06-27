@@ -61,6 +61,10 @@ public sealed class ManualReviewConfiguration : IEntityTypeConfiguration<ManualR
             .HasMaxLength(1000)
             .IsRequired(false);
 
+        builder.Property(e => e.EscalationReason)
+            .HasMaxLength(1000)
+            .IsRequired(false);
+
         builder.Property(e => e.SupervisedAt)
             .HasConversion(
                 dto => dto.HasValue ? (long?)dto.Value.UtcTicks : null,

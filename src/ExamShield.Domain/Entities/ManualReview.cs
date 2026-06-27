@@ -15,6 +15,7 @@ public sealed class ManualReview : AggregateRoot
     public DateTimeOffset? CompletedAt { get; private set; }
     public UserId? SupervisorId { get; private set; }
     public string? RejectionReason { get; private set; }
+    public string? EscalationReason { get; private set; }
     public DateTimeOffset? SupervisedAt { get; private set; }
 
     private ManualReview() { }
@@ -68,5 +69,18 @@ public sealed class ManualReview : AggregateRoot
         RejectionReason = reason;
         SupervisedAt = DateTimeOffset.UtcNow;
         Status = ManualReviewStatus.Rejected;
+    }
+
+    public void Escalate(string reason, UserId supervisorId)
+    {
+        if (Status != ManualReviewStatus.Completed)
+            throw new InvalidOperationException("Only a completed review can be escalated.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason, nameof(reason));
+        ArgumentNullException.ThrowIfNull(supervisorId);
+
+        SupervisorId = supervisorId;
+        EscalationReason = reason;
+        SupervisedAt = DateTimeOffset.UtcNow;
+        Status = ManualReviewStatus.Escalated;
     }
 }

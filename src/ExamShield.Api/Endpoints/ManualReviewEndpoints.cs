@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ExamShield.Api.Contracts;
 using ExamShield.Application.Commands.ApproveReview;
+using ExamShield.Application.Commands.EscalateReview;
 using ExamShield.Application.Commands.RejectReview;
 using ExamShield.Application.Commands.SubmitReview;
 using ExamShield.Application.Queries.GetPendingReviews;
@@ -88,6 +89,27 @@ public static class ManualReviewEndpoints
             }
         })
         .WithName("RejectReview")
+        .WithTags("Review")
+        .RequireAuthorization("Supervisor")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status404NotFound);
+
+        app.MapPut("/reviews/{reviewId:guid}/escalate", async (
+            Guid reviewId, EscalateReviewRequest request,
+            ClaimsPrincipal user, IMediator mediator, CancellationToken ct) =>
+        {
+            var supervisorId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            try
+            {
+                await mediator.Send(new EscalateReviewCommand(reviewId, supervisorId, request.Reason), ct);
+                return Results.NoContent();
+            }
+            catch (ManualReviewNotFoundException)
+            {
+                return Results.NotFound();
+            }
+        })
+        .WithName("EscalateReview")
         .WithTags("Review")
         .RequireAuthorization("Supervisor")
         .Produces(StatusCodes.Status204NoContent)
