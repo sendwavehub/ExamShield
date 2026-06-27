@@ -21,6 +21,16 @@ public sealed class SystemSettings
         int accessTokenExpiryMinutes,
         int refreshTokenExpiryDays)
     {
+        if (double.IsNaN(ocrConfidenceThreshold) || ocrConfidenceThreshold < 0.0 || ocrConfidenceThreshold > 1.0)
+            throw new ArgumentOutOfRangeException(nameof(ocrConfidenceThreshold),
+                "OCR confidence threshold must be between 0.0 and 1.0.");
+        if (accessTokenExpiryMinutes <= 0)
+            throw new ArgumentOutOfRangeException(nameof(accessTokenExpiryMinutes),
+                "Access token expiry must be greater than zero.");
+        if (refreshTokenExpiryDays <= 0)
+            throw new ArgumentOutOfRangeException(nameof(refreshTokenExpiryDays),
+                "Refresh token expiry must be greater than zero.");
+
         OcrConfidenceThreshold = ocrConfidenceThreshold;
         NotificationsEnabled = notificationsEnabled;
         NotificationSeverity = notificationSeverity;
