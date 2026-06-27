@@ -18,4 +18,7 @@ public interface ICaptureRepository
     Task<IReadOnlyList<Capture>> ListByExamIdAsync(ExamId examId, CancellationToken ct = default);
     Task<int> CountAsync(CancellationToken ct = default);
     Task<int> CountVerifiedSinceAsync(DateTimeOffset since, CancellationToken ct = default);
+    Task<bool> ExistsByStudentExamPageAsync(
+        StudentId studentId, ExamId examId, PageNumber pageNumber,
+        CancellationToken ct = default);
 }

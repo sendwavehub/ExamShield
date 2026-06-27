@@ -52,6 +52,9 @@ public sealed class RegisterCaptureCommandHandler
         if (!_sigService.Verify(hash, signature, device.PublicKey))
             throw new InvalidSignatureException(command.DeviceId);
 
+        if (await _repository.ExistsByStudentExamPageAsync(studentId, examId, pageNumber, ct))
+            throw new DuplicateCaptureException(command.ExamId, command.StudentId, command.PageNumber);
+
         var capture = Capture.Create(examId, studentId, deviceId, pageNumber, hash, signature);
 
         await _repository.AddAsync(capture, ct);

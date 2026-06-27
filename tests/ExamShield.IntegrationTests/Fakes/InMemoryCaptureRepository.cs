@@ -59,4 +59,13 @@ public sealed class InMemoryCaptureRepository : ICaptureRepository
     public Task<IReadOnlyList<Capture>> ListByExamIdAsync(ExamId examId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<Capture>>(
             _store.Values.Where(c => c.ExamId == examId).ToList());
+
+    public Task<bool> ExistsByStudentExamPageAsync(
+        StudentId studentId, ExamId examId, PageNumber pageNumber,
+        CancellationToken ct = default) =>
+        Task.FromResult(_store.Values.Any(
+            c => c.StudentId == studentId
+              && c.ExamId    == examId
+              && c.PageNumber == pageNumber
+              && c.Status    != CaptureStatus.Tampered));
 }
