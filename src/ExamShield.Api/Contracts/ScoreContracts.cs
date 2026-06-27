@@ -26,3 +26,6 @@ public sealed record ScoringQueueResponse(IReadOnlyList<ScoringQueueItemResponse
 
 public sealed record BatchScoreRequest(Guid ExamId);
 public sealed record BatchScoreResponse(Guid ExamId, int Scored, int Skipped);
+
+public sealed record RankingEntryResponse(int Rank, Guid StudentId, int CorrectAnswers, int TotalQuestions, double Percentage);
+public sealed record ExamRankingsResponse(Guid ExamId, IReadOnlyList<RankingEntryResponse> Rankings);

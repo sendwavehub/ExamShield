@@ -5,6 +5,7 @@ using ExamShield.Application.Commands.ScoreCapture;
 using ExamShield.Application.Queries.ExportScores;
 using ExamShield.Application.Queries.GetResults;
 using ExamShield.Application.Queries.GetScoringQueue;
+using ExamShield.Application.Queries.GetExamRankings;
 using ExamShield.Application.Queries.GetStatistics;
 using MediatR;
 
@@ -85,5 +86,18 @@ public static class ScoreEndpoints
                 result.HighestScore, result.LowestScore));
         })
         .RequireAuthorization("Auditor");
+
+        app.MapGet("/score/rankings/{examId:guid}", async (Guid examId, IMediator mediator, CancellationToken ct) =>
+        {
+            var result = await mediator.Send(new GetExamRankingsQuery(examId), ct);
+            var entries = result.Rankings
+                .Select(r => new RankingEntryResponse(r.Rank, r.StudentId, r.CorrectAnswers, r.TotalQuestions, r.Percentage))
+                .ToList();
+            return Results.Ok(new ExamRankingsResponse(examId, entries));
+        })
+        .WithName("GetExamRankings")
+        .WithTags("Score")
+        .RequireAuthorization("Auditor")
+        .Produces<ExamRankingsResponse>();
     }
 }
