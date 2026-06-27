@@ -19,6 +19,7 @@ import ReportsPage from './pages/ReportsPage'
 import SettingsPage from './pages/SettingsPage'
 import StudentPortalPage from './pages/StudentPortalPage'
 import MfaPage from './pages/MfaPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import AnswerSheetsPage from './pages/AnswerSheetsPage'
 import AppLayout from './components/layout/AppLayout'
 import { useDashboardStats } from './hooks/useDashboardStats'
@@ -64,6 +65,7 @@ export default function App() {
             path="/login"
             element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage onLogin={login} onMfaLogin={completeMfaLogin} requiresMfa={requiresMfa} />}
           />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/public/verify" element={<PublicVerificationPage />} />
           <Route
             path="/*"

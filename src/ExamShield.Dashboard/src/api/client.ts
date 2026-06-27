@@ -345,6 +345,18 @@ export const api = {
       body: JSON.stringify({ reason }),
     }),
 
+  forgotPassword: (email: string) =>
+    request<void>('/auth/password/forgot', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token: string, newPassword: string) =>
+    request<void>('/auth/password/reset', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    }),
+
   getLoginHistory: (limit = 100) =>
     request<LoginHistoryResponse>(`/security/login-history?limit=${limit}`),
 

@@ -124,6 +124,12 @@ export default function LoginPage({ onLogin, onMfaLogin, requiresMfa }: LoginPag
           >
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
+
+          <p className="text-center text-sm text-muted-foreground">
+            <a href="/forgot-password" className="text-primary hover:underline">
+              Forgot password?
+            </a>
+          </p>
         </form>
       </div>
     </div>
