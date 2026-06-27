@@ -58,6 +58,8 @@ builder.Services
 // ── RBAC policies (hierarchical: higher roles include lower-level access) ─
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy("Student", p =>
+        p.RequireRole("Student", "Operator", "Supervisor", "Auditor", "Administrator", "SecurityOfficer"));
     options.AddPolicy("Operator", p =>
         p.RequireRole("Operator", "Supervisor", "Auditor", "Administrator", "SecurityOfficer"));
     options.AddPolicy("Supervisor", p =>

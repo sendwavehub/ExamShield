@@ -27,7 +27,7 @@ public static class StudentEndpoints
         })
         .WithName("GetStudentResults")
         .WithTags("Student")
-        .RequireAuthorization("Operator")
+        .RequireAuthorization("Student")
         .Produces<StudentResultsResponse>()
         .ProducesProblem(StatusCodes.Status400BadRequest);
 
@@ -45,7 +45,7 @@ public static class StudentEndpoints
             })
         .WithName("SubmitReviewRequest")
         .WithTags("Student")
-        .RequireAuthorization("Operator")
+        .RequireAuthorization("Student")
         .Produces<SubmitReviewRequestResponse>(StatusCodes.Status201Created)
         .ProducesProblem(StatusCodes.Status400BadRequest)
         .ProducesProblem(StatusCodes.Status404NotFound);
@@ -63,7 +63,7 @@ public static class StudentEndpoints
             })
         .WithName("GetReviewRequests")
         .WithTags("Student")
-        .RequireAuthorization("Operator")
+        .RequireAuthorization("Student")
         .Produces<ReviewRequestListResponse>()
         .ProducesProblem(StatusCodes.Status400BadRequest);
 
