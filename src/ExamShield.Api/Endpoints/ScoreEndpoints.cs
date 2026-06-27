@@ -4,6 +4,7 @@ using ExamShield.Application.Commands.PublishResults;
 using ExamShield.Application.Commands.ScoreCapture;
 using ExamShield.Application.Queries.ExportScores;
 using ExamShield.Application.Queries.GetResults;
+using ExamShield.Application.Queries.GetScoreBreakdown;
 using ExamShield.Application.Queries.GetScoringQueue;
 using ExamShield.Application.Queries.GetExamRankings;
 using ExamShield.Application.Queries.GetExamStatistics;
@@ -100,6 +101,18 @@ public static class ScoreEndpoints
         .WithTags("Score")
         .RequireAuthorization("Auditor")
         .Produces<ExamRankingsResponse>();
+
+        app.MapGet("/score/{captureId:guid}/breakdown",
+            async (Guid captureId, IMediator mediator, CancellationToken ct) =>
+            {
+                var result = await mediator.Send(new GetScoreBreakdownQuery(captureId), ct);
+                return Results.Ok(result);
+            })
+        .WithName("GetScoreBreakdown")
+        .WithTags("Score")
+        .RequireAuthorization("Operator")
+        .Produces<GetScoreBreakdownResult>()
+        .ProducesProblem(StatusCodes.Status404NotFound);
 
         app.MapGet("/score/exams/{examId:guid}/statistics", async (Guid examId, IMediator mediator, CancellationToken ct) =>
         {
