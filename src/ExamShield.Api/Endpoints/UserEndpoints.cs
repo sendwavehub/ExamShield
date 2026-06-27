@@ -34,9 +34,9 @@ public static class UserEndpoints
 
         group.MapGet("/export", async (
             IMediator mediator, CancellationToken ct,
-            string? search = null, string? role = null) =>
+            string? search = null, string? role = null, bool? isActive = null) =>
         {
-            var result = await mediator.Send(new ExportUsersQuery(search, role), ct);
+            var result = await mediator.Send(new ExportUsersQuery(search, role, isActive), ct);
             return Results.File(
                 System.Text.Encoding.UTF8.GetBytes(result.Csv),
                 "text/csv",

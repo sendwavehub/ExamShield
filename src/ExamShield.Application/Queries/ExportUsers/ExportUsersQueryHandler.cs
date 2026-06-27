@@ -9,7 +9,8 @@ public sealed record ExportUsersResult(string Csv, string Filename);
 
 public sealed record ExportUsersQuery(
     string? Search = null,
-    string? Role = null)
+    string? Role = null,
+    bool? IsActive = null)
     : IRequest<ExportUsersResult>;
 
 public sealed class ExportUsersQueryHandler(IUserRepository users)
@@ -27,6 +28,8 @@ public sealed class ExportUsersQueryHandler(IUserRepository users)
             filtered = filtered.Where(u => u.Email.Value.Contains(query.Search, StringComparison.OrdinalIgnoreCase));
         if (!string.IsNullOrWhiteSpace(query.Role) && Enum.TryParse<UserRole>(query.Role, out var parsedRole))
             filtered = filtered.Where(u => u.Role == parsedRole);
+        if (query.IsActive is not null)
+            filtered = filtered.Where(u => u.IsActive == query.IsActive);
 
         var csv = new StringBuilder();
         csv.AppendLine(string.Join(",", Header));

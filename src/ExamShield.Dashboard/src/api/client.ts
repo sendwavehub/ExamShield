@@ -191,10 +191,11 @@ export const api = {
     return request<UserListResponse>(`/users/?${params}`)
   },
 
-  exportUsers: (search?: string, role?: string) => {
+  exportUsers: (search?: string, role?: string, isActive?: boolean) => {
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     if (role) params.set('role', role)
+    if (isActive !== undefined) params.set('isActive', String(isActive))
     const query = params.toString() ? `?${params}` : ''
     return fetch(`${BASE_URL}/users/export${query}`, {
       headers: { ...authHeaders() },

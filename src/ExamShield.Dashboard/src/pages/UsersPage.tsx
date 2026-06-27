@@ -69,7 +69,7 @@ export default function UsersPage() {
           <option value="false">Inactive</option>
         </select>
         <button
-          onClick={() => api.exportUsers(search || undefined, roleFilter || undefined).then(blob => {
+          onClick={() => api.exportUsers(search || undefined, roleFilter || undefined, isActiveParam).then(blob => {
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
