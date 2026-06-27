@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import ImageViewer from '../components/ImageViewer'
 import Pagination from '../components/Pagination'
-import { useChainOfCustody } from '../hooks/useCaptures'
+import { useChainOfCustody, useFlagCaptureAsTampered } from '../hooks/useCaptures'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5083'
 
@@ -32,8 +32,11 @@ export default function AnswerSheetsPage() {
   })
 
   const [viewingId,  setViewingId]  = useState<string | null>(null)
-  const [chainId,    setChainId]    = useState<string | null>(null)
+  const [chainId,      setChainId]      = useState<string | null>(null)
+  const [flagReason,   setFlagReason]   = useState('')
+  const [flagError,    setFlagError]    = useState<string | null>(null)
   const { data: chain, isLoading: chainLoading } = useChainOfCustody(chainId)
+  const flagTampered = useFlagCaptureAsTampered()
 
   function handleFilterChange() {
     setPage(1)
@@ -197,6 +200,36 @@ export default function AnswerSheetsPage() {
                 {chain.ocrResult && <div><span className="text-muted-foreground">OCR Confidence</span><br/><span className="font-mono">{(chain.ocrResult.overallConfidence * 100).toFixed(1)}%</span></div>}
                 {chain.score && <div><span className="text-muted-foreground">Score</span><br/><span className="font-mono">{chain.score.correctAnswers}/{chain.score.totalQuestions} ({chain.score.percentage.toFixed(1)}%)</span></div>}
               </div>
+              {chain.status !== 'Tampered' && (
+                <div className="border-t border-red-900/30 pt-3 space-y-2">
+                  <p className="text-xs font-medium text-red-400">Flag as Tampered</p>
+                  <div className="flex gap-2">
+                    <input
+                      value={flagReason}
+                      onChange={e => setFlagReason(e.target.value)}
+                      placeholder="Reason for flagging (required)"
+                      className="flex-1 rounded border border-red-800/40 px-2 py-1 text-xs bg-background"
+                    />
+                    <button
+                      disabled={!flagReason.trim() || flagTampered.isPending}
+                      onClick={() =>
+                        flagTampered.mutate(
+                          { captureId: chainId!, reason: flagReason },
+                          {
+                            onSuccess: () => { setFlagReason(''); setFlagError(null) },
+                            onError: () => setFlagError('Failed — capture may already be tampered'),
+                          }
+                        )
+                      }
+                      className="px-3 py-1 rounded bg-red-900/50 text-red-300 text-xs hover:bg-red-900/70 disabled:opacity-40"
+                    >
+                      {flagTampered.isPending ? '…' : 'Flag'}
+                    </button>
+                  </div>
+                  {flagError && <p className="text-xs text-red-400">{flagError}</p>}
+                </div>
+              )}
+
               <div>
                 <p className="text-xs text-muted-foreground mb-2">Audit Trail ({chain.auditTrail.length} events)</p>
                 <ol className="relative border-l border-purple-800/40 ml-2 space-y-2">

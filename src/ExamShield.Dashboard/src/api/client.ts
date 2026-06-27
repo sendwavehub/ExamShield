@@ -133,6 +133,12 @@ export const api = {
   getChainOfCustody: (captureId: string) =>
     request<ChainOfCustodyResult>(`/captures/${captureId}/chain-of-custody`),
 
+  flagCaptureAsTampered: (captureId: string, reason: string) =>
+    request<void>(`/captures/${captureId}/flag-tampered`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
   exportCaptures: (examId?: string, status?: string) => {
     const params = new URLSearchParams()
     if (examId) params.set('examId', examId)

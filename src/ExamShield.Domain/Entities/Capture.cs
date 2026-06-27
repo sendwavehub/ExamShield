@@ -76,4 +76,13 @@ public sealed class Capture : AggregateRoot
         AddDomainEvent(new TamperingDetected(Id, ExpectedHash, currentHash));
         return false;
     }
+
+    public void FlagAsTampered(string reason)
+    {
+        if (Status == CaptureStatus.Tampered)
+            throw new CaptureAlreadyTamperedException(Id.Value);
+
+        Status = CaptureStatus.Tampered;
+        AddDomainEvent(new TamperingDetected(Id, ExpectedHash, ExpectedHash));
+    }
 }

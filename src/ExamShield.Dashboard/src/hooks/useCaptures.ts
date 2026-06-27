@@ -24,3 +24,15 @@ export function useChainOfCustody(captureId: string | null) {
     enabled: !!captureId,
   })
 }
+
+export function useFlagCaptureAsTampered() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ captureId, reason }: { captureId: string; reason: string }) =>
+      api.flagCaptureAsTampered(captureId, reason),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['chain-of-custody', vars.captureId] })
+      qc.invalidateQueries({ queryKey: ['captures'] })
+    },
+  })
+}

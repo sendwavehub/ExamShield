@@ -1,4 +1,5 @@
 using ExamShield.Api.Contracts;
+using ExamShield.Application.Commands.FlagCaptureAsTampered;
 using ExamShield.Application.Commands.RegisterCapture;
 using ExamShield.Application.Commands.VerifyIntegrity;
 using ExamShield.Application.Queries.ExportCaptures;
@@ -94,6 +95,19 @@ public static class CaptureEndpoints
         .RequireAuthorization("Auditor")
         .Produces<GetChainOfCustodyResult>()
         .ProducesProblem(StatusCodes.Status404NotFound);
+
+        app.MapPost("/captures/{id:guid}/flag-tampered",
+            async (Guid id, FlagTamperedRequest request, ISender sender, CancellationToken ct) =>
+            {
+                await sender.Send(new FlagCaptureAsTamperedCommand(id, request.Reason), ct);
+                return Results.NoContent();
+            })
+        .WithName("FlagCaptureAsTampered")
+        .WithTags("Capture")
+        .RequireAuthorization("Administrator")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status404NotFound)
+        .ProducesProblem(StatusCodes.Status409Conflict);
 
         // Also register the /captures/{id}/image route on the root app (not under /capture group)
         app.MapGet("/captures/{id:guid}/image", GetCaptureImageAsync)
