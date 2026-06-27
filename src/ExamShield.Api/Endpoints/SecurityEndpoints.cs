@@ -65,9 +65,10 @@ public static class SecurityEndpoints
         int limit = 100,
         DateTimeOffset? from = null,
         DateTimeOffset? to = null,
+        string? userId = null,
         CancellationToken ct = default)
     {
-        var result = await sender.Send(new GetLoginHistoryQuery(limit, from, to), ct);
+        var result = await sender.Send(new GetLoginHistoryQuery(limit, from, to, userId), ct);
         var response = new LoginHistoryResponse(
             result.Events.Select(e =>
                 new LoginHistoryEntry(e.Id, e.EventType, e.UserId, e.IpAddress, e.OccurredAt))

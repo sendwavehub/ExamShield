@@ -448,10 +448,11 @@ export const api = {
       body: JSON.stringify({ token, newPassword }),
     }),
 
-  getLoginHistory: (limit = 100, from?: string, to?: string) => {
+  getLoginHistory: (limit = 100, from?: string, to?: string, userId?: string) => {
     const params = new URLSearchParams({ limit: String(limit) })
-    if (from) params.set('from', from)
-    if (to)   params.set('to', to)
+    if (from)   params.set('from', from)
+    if (to)     params.set('to', to)
+    if (userId) params.set('userId', userId)
     return request<LoginHistoryResponse>(`/security/login-history?${params}`)
   },
 
