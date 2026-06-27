@@ -19,7 +19,8 @@ public sealed class Score : AggregateRoot
 
     public static Score Create(
         CaptureId captureId, ExamId examId, StudentId studentId,
-        IReadOnlyList<ExtractedAnswer> answers, AnswerKey answerKey)
+        IReadOnlyList<ExtractedAnswer> answers, AnswerKey answerKey,
+        DateTimeOffset? scoredAt = null)
     {
         ArgumentNullException.ThrowIfNull(captureId);
         ArgumentNullException.ThrowIfNull(examId);
@@ -40,7 +41,7 @@ public sealed class Score : AggregateRoot
             CorrectAnswers = correct,
             TotalQuestions = total,
             Percentage = pct,
-            ScoredAt = DateTimeOffset.UtcNow
+            ScoredAt = scoredAt ?? DateTimeOffset.UtcNow
         };
     }
 

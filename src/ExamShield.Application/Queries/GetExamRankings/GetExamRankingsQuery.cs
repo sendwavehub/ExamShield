@@ -21,6 +21,8 @@ public sealed class GetExamRankingsQueryHandler(IScoreRepository scores)
         var ordered = all
             .OrderByDescending(s => s.Percentage)
             .ThenByDescending(s => s.CorrectAnswers)
+            .ThenBy(s => s.ScoredAt)
+            .ThenBy(s => s.StudentId.Value)
             .ToList();
 
         var rankings = new List<RankingEntry>(ordered.Count);
