@@ -37,6 +37,9 @@ public sealed class ScoreCaptureCommandHandler : IRequestHandler<ScoreCaptureCom
         var capture = await _captures.GetByIdAsync(new CaptureId(command.CaptureId), ct)
             ?? throw new CaptureNotFoundException(command.CaptureId);
 
+        if (capture.Status == CaptureStatus.Tampered)
+            throw new CaptureAlreadyTamperedException(command.CaptureId);
+
         if (await _scores.ExistsByCaptureIdAsync(capture.Id, ct))
             throw new DuplicateScoreException(command.CaptureId);
 
