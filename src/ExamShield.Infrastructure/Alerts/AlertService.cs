@@ -6,24 +6,34 @@ namespace ExamShield.Infrastructure.Alerts;
 
 public sealed class AlertService : IAlertService
 {
-    private readonly IReadOnlyList<IAlertChannel> _channels;
+    private readonly IReadOnlyList<IAlertChannel> _staticChannels;
+    private readonly DynamicAlertService _dynamic;
 
-    public AlertService(IConfiguration configuration, IHttpClientFactory httpClientFactory)
+    public AlertService(
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory,
+        INotificationChannelSettingsRepository repo)
     {
         var configs = configuration
             .GetSection("Alerts:Channels")
             .Get<AlertChannelConfig[]>() ?? [];
 
-        _channels = configs
+        _staticChannels = configs
             .Where(c => c.Enabled)
             .Select(c => CreateChannel(c, httpClientFactory))
             .Where(ch => ch is not null)
             .Select(ch => ch!)
             .ToList();
+
+        _dynamic = new DynamicAlertService(repo, new HttpAlertChannelFactory(httpClientFactory));
     }
 
-    public Task SendAsync(AlertType type, string message, CancellationToken ct = default) =>
-        Task.WhenAll(_channels.Select(ch => ch.SendAsync(type, message, ct)));
+    public async Task SendAsync(AlertType type, string message, CancellationToken ct = default)
+    {
+        var staticTask  = Task.WhenAll(_staticChannels.Select(ch => ch.SendAsync(type, message, ct)));
+        var dynamicTask = _dynamic.SendAsync(type, message, ct);
+        await Task.WhenAll(staticTask, dynamicTask);
+    }
 
     private static IAlertChannel? CreateChannel(AlertChannelConfig config, IHttpClientFactory factory)
     {
