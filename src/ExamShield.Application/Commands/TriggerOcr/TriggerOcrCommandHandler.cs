@@ -11,6 +11,7 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
 {
     private readonly ICaptureRepository _captures;
     private readonly IImageStorage _imageStorage;
+    private readonly IWatermarkService _watermark;
     private readonly IOcrService _ocrService;
     private readonly IOcrResultRepository _ocrResults;
     private readonly IManualReviewRepository _manualReviews;
@@ -18,11 +19,13 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
 
     public TriggerOcrCommandHandler(
         ICaptureRepository captures, IImageStorage imageStorage,
-        IOcrService ocrService, IOcrResultRepository ocrResults,
-        IManualReviewRepository manualReviews, IAuditLogRepository auditLog)
+        IWatermarkService watermark, IOcrService ocrService,
+        IOcrResultRepository ocrResults, IManualReviewRepository manualReviews,
+        IAuditLogRepository auditLog)
     {
         _captures = captures;
         _imageStorage = imageStorage;
+        _watermark = watermark;
         _ocrService = ocrService;
         _ocrResults = ocrResults;
         _manualReviews = manualReviews;
@@ -37,7 +40,10 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
         if (capture.StorageKey is null)
             throw new CaptureNotUploadedException(command.CaptureId);
 
-        var imageBytes = await _imageStorage.RetrieveAsync(capture.StorageKey, ct);
+        var storedBytes = await _imageStorage.RetrieveAsync(capture.StorageKey, ct);
+        var wm = _watermark.Extract(storedBytes);
+        var imageBytes = wm.IsValid ? storedBytes[..wm.OriginalImageLength] : storedBytes;
+
         var extraction = await _ocrService.ExtractAsync(imageBytes, ct);
         var ocrResult = OcrResult.Create(capture.Id, extraction.Answers);
 

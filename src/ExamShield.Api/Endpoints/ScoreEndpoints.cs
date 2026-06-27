@@ -2,6 +2,7 @@ using ExamShield.Api.Contracts;
 using ExamShield.Application.Commands.PublishResults;
 using ExamShield.Application.Commands.ScoreCapture;
 using ExamShield.Application.Queries.GetResults;
+using ExamShield.Application.Queries.GetScoringQueue;
 using ExamShield.Application.Queries.GetStatistics;
 using MediatR;
 
@@ -11,6 +12,20 @@ public static class ScoreEndpoints
 {
     public static void MapScoreEndpoints(this WebApplication app)
     {
+        app.MapGet("/score/queue", async (IMediator mediator, CancellationToken ct) =>
+        {
+            var result = await mediator.Send(new GetScoringQueueQuery(), ct);
+            var items = result.Items
+                .Select(i => new ScoringQueueItemResponse(
+                    i.CaptureId, i.ExamId, i.OcrResultId,
+                    i.OcrStatus, i.OverallConfidence, i.CompletedAt))
+                .ToList();
+            return Results.Ok(new ScoringQueueResponse(items));
+        })
+        .WithName("GetScoringQueue")
+        .RequireAuthorization("Operator")
+        .Produces<ScoringQueueResponse>();
+
         app.MapPost("/score", async (ScoreCaptureRequest request, IMediator mediator, CancellationToken ct) =>
         {
             var result = await mediator.Send(new ScoreCaptureCommand(request.CaptureId), ct);

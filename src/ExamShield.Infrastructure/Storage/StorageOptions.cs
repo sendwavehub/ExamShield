@@ -9,4 +9,9 @@ public sealed class StorageOptions
     public string SecretKey { get; init; } = string.Empty;
     public string BucketName { get; init; } = "examshield";
     public bool UseSSL { get; init; } = false;
+
+    // Object Lock (WORM) — enables immutability at the storage layer.
+    public bool EnableObjectLock { get; init; } = false;
+    public int RetentionDays { get; init; } = 3650;  // 10 years
+    public string RetentionMode { get; init; } = "COMPLIANCE";
 }

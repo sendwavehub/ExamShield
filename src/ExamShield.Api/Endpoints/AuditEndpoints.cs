@@ -36,7 +36,7 @@ public static class AuditEndpoints
         var response = new AuditLogResponse(
             result.Entries.Select(e => new AuditLogEntryResponse(
                 e.Id, e.Action, e.CaptureId, e.UserId, e.IpAddress, e.OccurredAt, e.Reason,
-                e.ContentHash
+                e.ContentHash, e.ServerSignature
             )).ToList(),
             result.TotalCount);
 

@@ -14,10 +14,12 @@ public sealed class LoginCommandHandlerTests
     private readonly IUserRepository _users = Substitute.For<IUserRepository>();
     private readonly IPasswordHasher _hasher = Substitute.For<IPasswordHasher>();
     private readonly IJwtTokenService _jwt = Substitute.For<IJwtTokenService>();
+    private readonly IRefreshTokenRepository _refreshTokens = Substitute.For<IRefreshTokenRepository>();
+    private readonly ISecurityEventRepository _security = Substitute.For<ISecurityEventRepository>();
     private readonly LoginCommandHandler _sut;
 
     public LoginCommandHandlerTests() =>
-        _sut = new LoginCommandHandler(_users, _hasher, _jwt);
+        _sut = new LoginCommandHandler(_users, _hasher, _jwt, _refreshTokens, _security);
 
     private static User MakeUser() =>
         User.Create(new Email("op@examshield.io"), "$2a$04$hash", UserRole.Operator);
@@ -70,5 +72,35 @@ public sealed class LoginCommandHandlerTests
         var act = () => _sut.Handle(new LoginCommand("op@examshield.io", "secret"), default);
 
         await act.Should().ThrowAsync<InvalidCredentialsException>();
+    }
+
+    [Fact]
+    public async Task Handle_WhenMfaEnabled_ReturnsRequiresMfaWithNoTokens()
+    {
+        var user = MakeUser();
+        user.SetMfaSecret("JBSWY3DPEHPK3PXP");
+        user.EnableMfa();
+        _users.FindByEmailAsync(Arg.Any<Email>(), Arg.Any<CancellationToken>()).Returns(user);
+        _hasher.Verify("secret", user.PasswordHash).Returns(true);
+
+        var result = await _sut.Handle(new LoginCommand("op@examshield.io", "secret"), default);
+
+        result.RequiresMfa.Should().BeTrue();
+        result.Token.Should().BeEmpty();
+        result.RefreshToken.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_WhenMfaEnabled_DoesNotIssueRefreshToken()
+    {
+        var user = MakeUser();
+        user.SetMfaSecret("JBSWY3DPEHPK3PXP");
+        user.EnableMfa();
+        _users.FindByEmailAsync(Arg.Any<Email>(), Arg.Any<CancellationToken>()).Returns(user);
+        _hasher.Verify("secret", user.PasswordHash).Returns(true);
+
+        await _sut.Handle(new LoginCommand("op@examshield.io", "secret"), default);
+
+        await _refreshTokens.DidNotReceive().AddAsync(Arg.Any<RefreshToken>(), Arg.Any<CancellationToken>());
     }
 }

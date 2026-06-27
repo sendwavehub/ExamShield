@@ -6,18 +6,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ExamShield.Infrastructure.Persistence.Repositories;
 
-public sealed class AuditLogRepository : IAuditLogRepository
+public sealed class AuditLogRepository(ExamShieldDbContext context, IServerSigningService signer) : IAuditLogRepository
 {
-    private readonly ExamShieldDbContext _context;
-
-    public AuditLogRepository(ExamShieldDbContext context) => _context = context;
-
     public async Task AppendAsync(AuditLog entry, CancellationToken ct = default)
     {
         var previousHash = string.Empty;
         if (entry.CaptureId is not null)
         {
-            var last = await _context.AuditLogs
+            var last = await context.AuditLogs
                 .Where(e => e.CaptureId == entry.CaptureId)
                 .OrderByDescending(e => e.OccurredAt)
                 .FirstOrDefaultAsync(ct);
@@ -26,15 +22,16 @@ public sealed class AuditLogRepository : IAuditLogRepository
 
         var contentHash = AuditChainHasher.ComputeContentHash(entry, previousHash);
         entry.SetChainHashes(previousHash, contentHash);
+        entry.SetServerSignature(signer.Sign($"{contentHash}|{previousHash}"));
 
-        await _context.AuditLogs.AddAsync(entry, ct);
-        await _context.SaveChangesAsync(ct);
+        await context.AuditLogs.AddAsync(entry, ct);
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task<(IReadOnlyList<AuditLog> Entries, int TotalCount)> QueryAsync(
         CaptureId? captureId, int page, int pageSize, CancellationToken ct = default)
     {
-        var query = _context.AuditLogs.AsQueryable();
+        var query = context.AuditLogs.AsQueryable();
 
         if (captureId is not null)
             query = query.Where(e => e.CaptureId == captureId);
@@ -52,7 +49,7 @@ public sealed class AuditLogRepository : IAuditLogRepository
 
     public async Task<IReadOnlyList<AuditLog>> GetChainAsync(
         CaptureId captureId, CancellationToken ct = default) =>
-        await _context.AuditLogs
+        await context.AuditLogs
             .Where(e => e.CaptureId == captureId)
             .OrderBy(e => e.OccurredAt)
             .ToListAsync(ct);

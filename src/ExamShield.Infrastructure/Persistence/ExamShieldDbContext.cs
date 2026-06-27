@@ -14,6 +14,10 @@ public class ExamShieldDbContext : DbContext
     public DbSet<OcrResult> OcrResults => Set<OcrResult>();
     public DbSet<ManualReview> ManualReviews => Set<ManualReview>();
     public DbSet<Score> Scores => Set<Score>();
+    public DbSet<SecurityEvent> SecurityEvents => Set<SecurityEvent>();
+    public DbSet<Exam> Exams => Set<Exam>();
+    public DbSet<SystemSettings> SystemSettings => Set<SystemSettings>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ExamShieldDbContext).Assembly);

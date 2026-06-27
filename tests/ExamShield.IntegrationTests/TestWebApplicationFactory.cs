@@ -10,16 +10,18 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace ExamShield.IntegrationTests;
 
-public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
+public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     public const string AdminEmail = "admin@test.examshield";
     public const string AdminPassword = "Test@1234!Admin";
 
-    // Pre-seed with a test admin whose password is BCrypt-hashed at low work factor for speed.
-    private static readonly User _adminUser = User.Create(
+    // Instance field so each factory gets a fresh user object — static would share the same
+    // User reference across factories, meaning MFA mutations in one test class leak into others.
+    private readonly User _adminUser = User.Create(
         new Email(AdminEmail),
         BCrypt.Net.BCrypt.HashPassword(AdminPassword, workFactor: 4),
         UserRole.Administrator);
@@ -36,7 +38,8 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<ICaptureRepository, InMemoryCaptureRepository>();
 
             services.RemoveAll<IAuditLogRepository>();
-            services.AddSingleton<IAuditLogRepository, InMemoryAuditLogRepository>();
+            services.AddSingleton<IAuditLogRepository>(sp =>
+                new InMemoryAuditLogRepository(sp.GetRequiredService<IServerSigningService>()));
 
             services.RemoveAll<IDeviceRepository>();
             services.AddSingleton<IDeviceRepository, InMemoryDeviceRepository>();
@@ -58,7 +61,22 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IScoreRepository>();
             services.AddSingleton<IScoreRepository, InMemoryScoreRepository>();
 
+            services.RemoveAll<ISecurityEventRepository>();
+            services.AddSingleton<ISecurityEventRepository, InMemorySecurityEventRepository>();
+
+            services.RemoveAll<IExamRepository>();
+            services.AddSingleton<IExamRepository, InMemoryExamRepository>();
+
+            services.RemoveAll<ISystemSettingsRepository>();
+            services.AddSingleton<ISystemSettingsRepository, InMemorySystemSettingsRepository>();
+
+            services.RemoveAll<IRefreshTokenRepository>();
+            services.AddSingleton<IRefreshTokenRepository, InMemoryRefreshTokenRepository>();
+
             // IPasswordHasher and IJwtTokenService stay — real BCrypt + real JWT for auth tests.
+
+            // Clear all health check registrations — no external services run in tests.
+            services.Configure<HealthCheckServiceOptions>(o => o.Registrations.Clear());
         });
     }
 
@@ -72,7 +90,10 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             new LoginRequest(AdminEmail, AdminPassword));
 
         var body = await response.Content.ReadFromJsonAsync<LoginResponse>();
-        _cachedToken = body!.Token;
+        if (body!.RequiresMfa || string.IsNullOrEmpty(body.Token))
+            throw new InvalidOperationException(
+                "Test admin user has MFA enabled — factory isolation is broken. Check for static shared user state.");
+        _cachedToken = body.Token;
         return _cachedToken;
     }
 

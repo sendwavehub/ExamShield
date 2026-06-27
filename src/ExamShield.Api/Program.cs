@@ -1,5 +1,6 @@
 using System.Text;
 using ExamShield.Api.Endpoints;
+using ExamShield.Api.RateLimiting;
 using ExamShield.Application.Behaviors;
 using ExamShield.Application.Queries.GetOcrResult;
 using ExamShield.Application.Commands.RegisterCapture;
@@ -9,13 +10,17 @@ using ExamShield.Infrastructure;
 using ExamShield.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+builder.Services.AddExamShieldRateLimiting(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton<HashVerificationService>();
 builder.Services.AddMediatR(cfg =>
@@ -84,6 +89,7 @@ app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async ctx =>
         ManualReviewNotFoundException   => (404, ex.Message),
         InvalidCredentialsException  => (401, ex.Message),
         UserAlreadyExistsException   => (409, ex.Message),
+        UserNotFoundException        => (404, ex.Message),
         ArgumentException e          => (400, e.Message),
         _                            => (500, "An unexpected error occurred.")
     };
@@ -95,8 +101,30 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 app.UseHttpsRedirection();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = _ => false  // liveness: returns 200 if the process is alive, no dependency pings
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    ResponseWriter = async (ctx, report) =>
+    {
+        ctx.Response.ContentType = "application/json";
+        var result = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.ToDictionary(
+                e => e.Key,
+                e => new { status = e.Value.Status.ToString(), error = e.Value.Exception?.Message })
+        };
+        await ctx.Response.WriteAsync(JsonSerializer.Serialize(result));
+    }
+});
 
 app.MapAuthEndpoints();
 app.MapDeviceEndpoints();
@@ -107,6 +135,16 @@ app.MapVerifyEndpoints();
 app.MapOcrEndpoints();
 app.MapScoreEndpoints();
 app.MapManualReviewEndpoints();
+app.MapSecurityEndpoints();
+app.MapDashboardEndpoints();
+app.MapPublicEndpoints();
+app.MapExamEndpoints();
+app.MapUserEndpoints();
+app.MapRoleEndpoints();
+app.MapReportEndpoints();
+app.MapSettingsEndpoints();
+app.MapStudentEndpoints();
+app.MapMfaEndpoints();
 
 app.Run();
 

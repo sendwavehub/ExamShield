@@ -34,4 +34,7 @@ public sealed class ScoreRepository : IScoreRepository
     public Task<IReadOnlyList<Score>> GetByExamIdAsync(ExamId examId, CancellationToken ct = default) =>
         _context.Scores.Where(s => s.ExamId == examId).ToListAsync(ct)
             .ContinueWith(t => (IReadOnlyList<Score>)t.Result, ct);
+
+    public Task<bool> ExistsByCaptureIdAsync(CaptureId captureId, CancellationToken ct = default) =>
+        _context.Scores.AnyAsync(s => s.CaptureId == captureId, ct);
 }

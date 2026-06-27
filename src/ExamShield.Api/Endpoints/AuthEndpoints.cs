@@ -1,9 +1,18 @@
 using ExamShield.Api.Contracts;
+using ExamShield.Api.RateLimiting;
+using ExamShield.Application.Commands.ChangePassword;
 using ExamShield.Application.Commands.CreateUser;
 using ExamShield.Application.Commands.Login;
+using ExamShield.Application.Commands.Logout;
+using ExamShield.Application.Commands.MfaLogin;
+using ExamShield.Application.Commands.Refresh;
+using ExamShield.Application.Commands.RevokeSession;
+using ExamShield.Application.Queries.GetProfile;
+using ExamShield.Application.Queries.ListActiveSessions;
 using ExamShield.Domain.Enums;
+using ExamShield.Domain.Exceptions;
+using System.Security.Claims;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 
 namespace ExamShield.Api.Endpoints;
 
@@ -16,8 +25,50 @@ public static class AuthEndpoints
         group.MapPost("/login", LoginAsync)
             .WithName("Login")
             .AllowAnonymous()
+            .RequireRateLimiting(RateLimitingExtensions.AuthPolicy)
+            .Produces<LoginResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
+
+        group.MapPost("/refresh", RefreshAsync)
+            .WithName("RefreshToken")
+            .AllowAnonymous()
             .Produces<LoginResponse>()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
+
+        group.MapPost("/logout", LogoutAsync)
+            .WithName("Logout")
+            .RequireAuthorization()
+            .Produces(StatusCodes.Status204NoContent);
+
+        group.MapPost("/mfa/login", MfaLoginAsync)
+            .WithName("MfaLogin")
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimitingExtensions.AuthPolicy)
+            .Produces<LoginResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
+
+        group.MapPost("/password/change", ChangePasswordAsync)
+            .WithName("ChangePassword")
+            .RequireAuthorization()
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
+
+        group.MapGet("/profile", GetProfileAsync)
+            .WithName("GetProfile")
+            .RequireAuthorization()
+            .Produces<ProfileResponse>();
+
+        group.MapGet("/sessions", GetSessionsAsync)
+            .WithName("GetSessions")
+            .RequireAuthorization()
+            .Produces<SessionsResponse>();
+
+        group.MapDelete("/sessions/{sessionId:guid}", RevokeSessionAsync)
+            .WithName("RevokeSession")
+            .RequireAuthorization()
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapPost("/users", CreateUserAsync)
             .WithName("CreateUser")
@@ -31,10 +82,105 @@ public static class AuthEndpoints
     }
 
     private static async Task<IResult> LoginAsync(
-        LoginRequest request, ISender sender, CancellationToken ct)
+        LoginRequest request, ISender sender, HttpContext ctx, CancellationToken ct)
     {
-        var result = await sender.Send(new LoginCommand(request.Email, request.Password), ct);
-        return Results.Ok(new LoginResponse(result.Token, result.Role));
+        var ip = ctx.Connection.RemoteIpAddress?.ToString();
+        var result = await sender.Send(new LoginCommand(request.Email, request.Password, ip), ct);
+        return Results.Ok(new LoginResponse(result.Token, result.RefreshToken, result.Role, result.RequiresMfa));
+    }
+
+    private static async Task<IResult> MfaLoginAsync(
+        MfaLoginRequest request, ISender sender, CancellationToken ct)
+    {
+        try
+        {
+            var result = await sender.Send(
+                new MfaLoginCommand(request.Email, request.Password, request.Code), ct);
+            return Results.Ok(new LoginResponse(result.Token, result.RefreshToken, result.Role));
+        }
+        catch (Exception e) when (e is InvalidCredentialsException or UnauthorizedAccessException)
+        {
+            return Results.Unauthorized();
+        }
+    }
+
+    private static async Task<IResult> RefreshAsync(
+        RefreshRequest request, ISender sender, CancellationToken ct)
+    {
+        try
+        {
+            var result = await sender.Send(new RefreshTokenCommand(request.RefreshToken), ct);
+            return Results.Ok(new LoginResponse(result.Token, result.RefreshToken, result.Role));
+        }
+        catch (InvalidCredentialsException)
+        {
+            return Results.Unauthorized();
+        }
+    }
+
+    private static async Task<IResult> LogoutAsync(
+        RefreshRequest request, ISender sender, CancellationToken ct)
+    {
+        await sender.Send(new LogoutCommand(request.RefreshToken), ct);
+        return Results.NoContent();
+    }
+
+    private static Guid? ExtractUserId(HttpContext ctx)
+    {
+        var sub = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                  ?? ctx.User.FindFirst("sub")?.Value;
+        return Guid.TryParse(sub, out var id) ? id : null;
+    }
+
+    private static async Task<IResult> ChangePasswordAsync(
+        ChangePasswordRequest request, ISender sender, HttpContext ctx, CancellationToken ct)
+    {
+        if (ExtractUserId(ctx) is not Guid userId) return Results.Unauthorized();
+        try
+        {
+            await sender.Send(new ChangePasswordCommand(userId, request.CurrentPassword, request.NewPassword), ct);
+            return Results.NoContent();
+        }
+        catch (InvalidCredentialsException)
+        {
+            return Results.Unauthorized();
+        }
+    }
+
+    private static async Task<IResult> GetProfileAsync(
+        ISender sender, HttpContext ctx, CancellationToken ct)
+    {
+        if (ExtractUserId(ctx) is not Guid userId) return Results.Unauthorized();
+        var result = await sender.Send(new GetProfileQuery(userId), ct);
+        return Results.Ok(new ProfileResponse(result.Email, result.Role, result.MfaEnabled));
+    }
+
+    private static async Task<IResult> GetSessionsAsync(
+        ISender sender, HttpContext ctx, CancellationToken ct)
+    {
+        if (ExtractUserId(ctx) is not Guid userId) return Results.Unauthorized();
+        var result = await sender.Send(new ListActiveSessionsQuery(userId), ct);
+        var sessions = result.Sessions.Select(s => new SessionResponse(s.Id, s.CreatedAt, s.ExpiresAt)).ToList();
+        return Results.Ok(new SessionsResponse(sessions));
+    }
+
+    private static async Task<IResult> RevokeSessionAsync(
+        Guid sessionId, ISender sender, HttpContext ctx, CancellationToken ct)
+    {
+        if (ExtractUserId(ctx) is not Guid userId) return Results.Unauthorized();
+        try
+        {
+            await sender.Send(new RevokeSessionCommand(userId, sessionId), ct);
+            return Results.NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return Results.NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Results.Forbid();
+        }
     }
 
     private static async Task<IResult> CreateUserAsync(

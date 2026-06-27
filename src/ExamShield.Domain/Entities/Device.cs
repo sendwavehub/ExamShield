@@ -30,4 +30,7 @@ public sealed class Device : AggregateRoot
         device.AddDomainEvent(new DeviceRegistered(device.Id));
         return device;
     }
+
+    public void Disable() => IsActive = false;
+    public void Enable()  => IsActive = true;
 }

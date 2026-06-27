@@ -1,9 +1,9 @@
 using ExamShield.Api.Contracts;
-using ExamShield.Application.Commands.TriggerOcr;
+using ExamShield.Application.Messages;
+using ExamShield.Application.Queries.GetOcrQueue;
 using ExamShield.Application.Queries.GetOcrResult;
-using ExamShield.Domain.Exceptions;
+using ExamShield.Domain.Interfaces;
 using MediatR;
-using Microsoft.AspNetCore.Mvc;
 
 namespace ExamShield.Api.Endpoints;
 
@@ -13,14 +13,27 @@ public static class OcrEndpoints
     {
         app.MapPost("/ocr/{captureId:guid}", async (
             Guid captureId,
+            IMessagePublisher publisher,
+            CancellationToken ct) =>
+        {
+            await publisher.PublishAsync(new OcrRequestedMessage(captureId), ct);
+            return Results.Accepted();
+        })
+        .RequireAuthorization("Operator");
+
+        app.MapGet("/ocr/queue", async (
             IMediator mediator,
             CancellationToken ct) =>
         {
-            var result = await mediator.Send(new TriggerOcrCommand(captureId), ct);
-            return Results.Ok(new TriggerOcrResponse(
-                result.OcrResultId, result.Status.ToString(), result.RequiresManualReview));
+            var result = await mediator.Send(new GetOcrQueueQuery(), ct);
+            var items = result.Items
+                .Select(i => new OcrQueueItemResponse(i.CaptureId, i.ExamId, i.StudentId, i.UploadedAt))
+                .ToList();
+            return Results.Ok(new OcrQueueResponse(items));
         })
-        .RequireAuthorization("Operator");
+        .WithName("GetOcrQueue")
+        .RequireAuthorization("Operator")
+        .Produces<OcrQueueResponse>();
 
         app.MapGet("/ocr/{captureId:guid}", async (
             Guid captureId,

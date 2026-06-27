@@ -1,0 +1,54 @@
+name: Feature Request
+description: Propose a new feature or enhancement
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a feature request, please check the [Roadmap](../../ROADMAP.md) and existing [Discussions](https://github.com/your-org/examshield/discussions) to avoid duplicates.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case or pain point. Who is affected and how often?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you'd like to see implemented.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+      description: What workarounds or other approaches did you evaluate?
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - API (ASP.NET Core)
+        - Mobile (Flutter)
+        - Dashboard (React)
+        - Infrastructure
+        - OCR Pipeline
+        - Auth / RBAC
+        - Docker / Kubernetes
+        - Documentation
+        - Other
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this to you?
+      options:
+        - Nice to have
+        - Important
+        - Blocking my use case

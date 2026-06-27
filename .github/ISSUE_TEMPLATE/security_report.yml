@@ -1,0 +1,42 @@
+name: Security Vulnerability (Public Disclosure Only)
+description: Use this ONLY for already-patched or low-severity public disclosures. For sensitive reports, use the private advisory form.
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **For sensitive vulnerabilities, do NOT use this form.**
+        Use [GitHub's private advisory tool](https://github.com/your-org/examshield/security/advisories/new) or email security@examshield.dev.
+
+        This form is only for disclosures that are already patched or are non-sensitive (e.g. dependency version bump recommendations).
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Vulnerability description
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Low
+        - Medium
+        - High
+        - Critical
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+    validations:
+      required: true
+
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Suggested mitigation

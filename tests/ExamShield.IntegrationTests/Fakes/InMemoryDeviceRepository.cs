@@ -17,4 +17,10 @@ public sealed class InMemoryDeviceRepository : IDeviceRepository
 
     public Task<Device?> GetByIdAsync(DeviceId id, CancellationToken ct = default) =>
         Task.FromResult(_store.TryGetValue(id, out var device) ? device : null);
+
+    public Task<IReadOnlyList<Device>> ListAllAsync(CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<Device>>(_store.Values.OrderByDescending(d => d.RegisteredAt).ToList());
+
+    public Task SaveAsync(Device device, CancellationToken ct = default) =>
+        Task.CompletedTask; // EF change tracking not needed; mutations are in-place
 }

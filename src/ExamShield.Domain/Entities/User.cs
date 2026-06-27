@@ -30,5 +30,26 @@ public sealed class User
         };
     }
 
+    public bool MfaEnabled { get; private set; }
+    public string? MfaSecret { get; private set; }
+
     public void Deactivate() => IsActive = false;
+
+    public void ChangePassword(string newHash)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(newHash, nameof(newHash));
+        PasswordHash = newHash;
+    }
+
+    public void ChangeRole(UserRole newRole) => Role = newRole;
+
+    public void SetMfaSecret(string secret) => MfaSecret = secret;
+
+    public void EnableMfa() => MfaEnabled = true;
+
+    public void DisableMfa()
+    {
+        MfaEnabled = false;
+        MfaSecret = null;
+    }
 }

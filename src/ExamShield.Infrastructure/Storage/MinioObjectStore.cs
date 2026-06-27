@@ -1,21 +1,26 @@
 using Minio;
 using Minio.DataModel.Args;
+using Minio.DataModel.ObjectLock;
 using Minio.Exceptions;
 
 namespace ExamShield.Infrastructure.Storage;
 
-internal sealed class MinioObjectStore(IMinioClient client, string bucketName) : IObjectStore
+public sealed class MinioObjectStore(IMinioClient client, string bucketName, StorageOptions options) : IObjectStore
 {
     public async Task PutAsync(string key, byte[] data, CancellationToken ct)
     {
         using var stream = new MemoryStream(data);
-        var args = new PutObjectArgs()
+        var putArgs = new PutObjectArgs()
             .WithBucket(bucketName)
             .WithObject(key)
             .WithStreamData(stream)
             .WithObjectSize(data.Length)
             .WithContentType("application/octet-stream");
-        await client.PutObjectAsync(args, ct);
+
+        await client.PutObjectAsync(putArgs, ct);
+
+        if (options.EnableObjectLock)
+            await SetRetentionAsync(key, ct);
     }
 
     public async Task<byte[]> GetAsync(string key, CancellationToken ct)
@@ -34,5 +39,20 @@ internal sealed class MinioObjectStore(IMinioClient client, string bucketName) :
             throw new KeyNotFoundException($"Object not found: {key}");
         }
         return output.ToArray();
+    }
+
+    private async Task SetRetentionAsync(string key, CancellationToken ct)
+    {
+        var mode = options.RetentionMode == "GOVERNANCE"
+            ? ObjectRetentionMode.GOVERNANCE
+            : ObjectRetentionMode.COMPLIANCE;
+
+        var retentionArgs = new SetObjectRetentionArgs()
+            .WithBucket(bucketName)
+            .WithObject(key)
+            .WithRetentionMode(mode)
+            .WithRetentionUntilDate(DateTime.UtcNow.AddDays(options.RetentionDays));
+
+        await client.SetObjectRetentionAsync(retentionArgs, ct);
     }
 }

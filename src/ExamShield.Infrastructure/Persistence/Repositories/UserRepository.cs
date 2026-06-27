@@ -17,6 +17,18 @@ public sealed class UserRepository : IUserRepository
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task SaveAsync(User user, CancellationToken ct = default)
+    {
+        _context.Users.Update(user);
+        await _context.SaveChangesAsync(ct);
+    }
+
     public Task<User?> FindByEmailAsync(Email email, CancellationToken ct = default) =>
         _context.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+
+    public Task<User?> GetByIdAsync(UserId id, CancellationToken ct = default) =>
+        _context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+
+    public async Task<IReadOnlyList<User>> ListAllAsync(CancellationToken ct = default) =>
+        await _context.Users.ToListAsync(ct);
 }

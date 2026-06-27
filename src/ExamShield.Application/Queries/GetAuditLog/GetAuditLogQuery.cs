@@ -21,5 +21,6 @@ public sealed record AuditLogDto(
     string IpAddress,
     DateTimeOffset OccurredAt,
     string? Reason,
-    string ContentHash
+    string ContentHash,
+    string ServerSignature
 );

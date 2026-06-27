@@ -10,4 +10,5 @@ public interface IScoreRepository
     Task<IReadOnlyList<Score>> GetAllAsync(CancellationToken ct = default);
     Task<IReadOnlyList<Score>> GetPublishedAsync(CancellationToken ct = default);
     Task<IReadOnlyList<Score>> GetByExamIdAsync(ExamId examId, CancellationToken ct = default);
+    Task<bool> ExistsByCaptureIdAsync(CaptureId captureId, CancellationToken ct = default);
 }

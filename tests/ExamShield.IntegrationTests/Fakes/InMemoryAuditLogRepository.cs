@@ -5,7 +5,7 @@ using ExamShield.Domain.ValueObjects;
 
 namespace ExamShield.IntegrationTests.Fakes;
 
-public sealed class InMemoryAuditLogRepository : IAuditLogRepository
+public sealed class InMemoryAuditLogRepository(IServerSigningService signer) : IAuditLogRepository
 {
     private readonly List<AuditLog> _entries = new();
 
@@ -17,6 +17,7 @@ public sealed class InMemoryAuditLogRepository : IAuditLogRepository
 
         var contentHash = AuditChainHasher.ComputeContentHash(entry, previousHash);
         entry.SetChainHashes(previousHash, contentHash);
+        entry.SetServerSignature(signer.Sign($"{contentHash}|{previousHash}"));
 
         _entries.Add(entry);
         return Task.CompletedTask;

@@ -1,0 +1,90 @@
+import { useQuery } from '@tanstack/react-query'
+import { api, type SecurityEventEntry } from '../api/client'
+import StatusChip from '../components/ui/StatusChip'
+import type { StatusVariant } from '../components/ui/StatusChip'
+import { ShieldAlert } from 'lucide-react'
+
+function severityVariant(severity: string): StatusVariant {
+  switch (severity.toLowerCase()) {
+    case 'critical': return 'danger'
+    case 'high':     return 'warning'
+    case 'warning':  return 'warning'
+    case 'info':     return 'info'
+    default:         return 'muted'
+  }
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString()
+}
+
+function EventRow({ event }: { event: SecurityEventEntry }) {
+  return (
+    <tr className="hover:bg-muted/30 transition-colors">
+      <td className="px-4 py-3 font-medium text-foreground">{event.eventType}</td>
+      <td className="px-4 py-3">
+        <StatusChip label={event.severity} variant={severityVariant(event.severity)} />
+      </td>
+      <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate" title={event.message}>
+        {event.message}
+      </td>
+      <td className="px-4 py-3 text-sm text-muted-foreground">{event.ipAddress ?? '—'}</td>
+      <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(event.occurredAt)}</td>
+    </tr>
+  )
+}
+
+export default function SecurityCenterPage() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['security-events'],
+    queryFn: () => api.getSecurityEvents(),
+    refetchInterval: 30_000,
+  })
+
+  const criticalCount = data?.events.filter(e => e.severity === 'Critical').length ?? 0
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <ShieldAlert className="h-6 w-6 text-red-500" />
+          <h1 className="text-2xl font-bold text-foreground">Security Center</h1>
+        </div>
+        {data && criticalCount > 0 && (
+          <span className="inline-flex items-center rounded-full bg-red-500/15 px-3 py-1 text-sm font-semibold text-red-500">
+            {criticalCount} critical
+          </span>
+        )}
+      </div>
+
+      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isError   && <p className="text-sm text-red-500">Failed to load security events.</p>}
+
+      {data && (
+        <div className="overflow-hidden rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                {['Event Type', 'Severity', 'Message', 'IP', 'Time'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {data.events.map(event => (
+                <EventRow key={event.id} event={event} />
+              ))}
+              {data.events.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    No security events recorded.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}

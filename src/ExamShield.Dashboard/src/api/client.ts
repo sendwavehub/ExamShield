@@ -1,0 +1,382 @@
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5083'
+
+function authHeaders(): HeadersInit {
+  const token = localStorage.getItem('auth_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...init?.headers },
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`${res.status}: ${text}`)
+  }
+  return res.json() as Promise<T>
+}
+
+export interface LoginResponse { token: string; refreshToken: string; role: string; requiresMfa: boolean }
+export interface DashboardStats {
+  totalCaptures: number
+  pendingReview: number
+  verifiedToday: number
+  alertCount: number
+}
+export interface AuditEntry {
+  id: string
+  action: string
+  captureId: string | null
+  userId: string
+  ipAddress: string
+  occurredAt: string
+  reason: string | null
+  contentHash: string
+  serverSignature: string
+}
+export interface AuditResponse { entries: AuditEntry[]; totalCount: number }
+
+export interface DeviceEntry {
+  deviceId: string
+  name: string
+  isActive: boolean
+  registeredAt: string
+}
+export interface DeviceListResponse { devices: DeviceEntry[] }
+
+export interface SecurityEventEntry {
+  id: string
+  eventType: string
+  severity: string
+  message: string
+  userId: string | null
+  ipAddress: string | null
+  captureId: string | null
+  occurredAt: string
+}
+export interface SecurityEventListResponse { events: SecurityEventEntry[] }
+
+export interface LoginHistoryEntry {
+  id: string
+  eventType: string
+  userId: string | null
+  ipAddress: string | null
+  occurredAt: string
+}
+export interface LoginHistoryResponse { events: LoginHistoryEntry[] }
+
+export const api = {
+  login: (email: string, password: string) =>
+    request<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+
+  mfaLogin: (email: string, password: string, code: string) =>
+    request<LoginResponse>('/auth/mfa/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, code }),
+    }),
+
+  refreshToken: (refreshToken: string) =>
+    request<LoginResponse>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    }),
+
+  logout: (refreshToken: string) =>
+    request<void>('/auth/logout', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    }),
+
+  getAuditLog: (params?: { captureId?: string; page?: number; pageSize?: number }) => {
+    const q = new URLSearchParams()
+    if (params?.captureId) q.set('captureId', params.captureId)
+    if (params?.page) q.set('page', String(params.page))
+    if (params?.pageSize) q.set('pageSize', String(params.pageSize))
+    return request<AuditResponse>(`/audit?${q}`)
+  },
+
+  getDevices: () => request<DeviceListResponse>('/devices'),
+
+  disableDevice: (id: string) =>
+    request<void>(`/devices/${id}/disable`, { method: 'PUT' }),
+
+  enableDevice: (id: string) =>
+    request<void>(`/devices/${id}/enable`, { method: 'PUT' }),
+
+  getSecurityEvents: (limit = 100) =>
+    request<SecurityEventListResponse>(`/security/events?limit=${limit}`),
+
+  getDashboardStats: () =>
+    request<DashboardStatsResponse>('/dashboard/stats'),
+
+  publicVerify: (captureId: string) =>
+    request<PublicVerifyResponse>(`/public/verify?captureId=${encodeURIComponent(captureId)}`),
+
+  getCaptures: () => request<CaptureListResponse>('/captures'),
+
+  verifyCapture: (captureId: string) =>
+    request<VerifyCaptureResponse>(`/public/verify?captureId=${encodeURIComponent(captureId)}`),
+
+  getUsers: () => request<UserListResponse>('/users/'),
+
+  updateUserRole: (userId: string, role: string) =>
+    request<void>(`/users/${userId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    }),
+
+  deactivateUser: (userId: string) =>
+    request<void>(`/users/${userId}/deactivate`, { method: 'PUT' }),
+
+  getExams: () => request<ExamListResponse>('/exams/'),
+
+  createExam: (payload: CreateExamPayload) =>
+    request<ExamItem>('/exams/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  getScoringQueue: () => request<ScoringQueueResponse>('/score/queue'),
+
+  scoreCapture: (captureId: string) =>
+    request<ScoreCaptureResponse>('/score', {
+      method: 'POST',
+      body: JSON.stringify({ captureId }),
+    }),
+
+  getStudentResults: (studentId: string) =>
+    request<StudentResultsResponse>(`/student/results?studentId=${encodeURIComponent(studentId)}`),
+
+  getSettings: () => request<SettingsResponse>('/settings/'),
+
+  updateSettings: (payload: UpdateSettingsPayload) =>
+    request<SettingsResponse>('/settings/', { method: 'PUT', body: JSON.stringify(payload) }),
+
+  getReportSummary: () => request<ReportSummaryResponse>('/reports/summary'),
+
+  getRoles: () => request<RoleListResponse>('/roles'),
+
+  getResults: () => request<GetResultsResponse>('/results'),
+
+  getStatistics: () => request<StatisticsResponse>('/statistics'),
+
+  getMfaStatus: () => request<MfaStatusResponse>('/auth/mfa/status'),
+  setupMfa: () => request<MfaSetupResponse>('/auth/mfa/setup', { method: 'POST' }),
+  verifyMfa: (code: string) =>
+    request<MfaStatusResponse>('/auth/mfa/verify', { method: 'POST', body: JSON.stringify({ code }) }),
+  disableMfa: () =>
+    request<MfaStatusResponse>('/auth/mfa/', { method: 'DELETE' }),
+
+  getOcrQueue: () => request<OcrQueueResponse>('/ocr/queue'),
+
+  triggerOcr: (captureId: string) =>
+    request<void>(`/ocr/${captureId}`, { method: 'POST' }),
+
+  getPendingReviews: () => request<PendingReviewsResponse>('/reviews'),
+
+  getReviewDetail: (reviewId: string) => request<ReviewDetailResponse>(`/reviews/${reviewId}`),
+
+  submitReview: (reviewId: string, answers: ReviewedAnswerPayload[]) =>
+    request<void>(`/reviews/${reviewId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    }),
+
+  getLoginHistory: (limit = 100) =>
+    request<LoginHistoryResponse>(`/security/login-history?limit=${limit}`),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<void>('/auth/password/change', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
+  getProfile: () => request<ProfileResponse>('/auth/profile'),
+
+  getSessions: () => request<SessionsResponse>('/auth/sessions'),
+
+  revokeSession: (sessionId: string) =>
+    request<void>(`/auth/sessions/${sessionId}`, { method: 'DELETE' }),
+}
+
+export interface CaptureItem {
+  captureId: string
+  examId: string
+  studentId: string
+  deviceId: string
+  status: string
+  capturedAt: string
+  storageKey: string | null
+}
+export interface CaptureListResponse { captures: CaptureItem[] }
+
+export interface VerifyCaptureResponse {
+  isValid: boolean
+  hashValid: boolean
+  signatureValid: boolean
+}
+
+export interface UserItem {
+  userId: string
+  email: string
+  role: string
+  isActive: boolean
+  createdAt: string
+}
+export interface UserListResponse { users: UserItem[] }
+
+export interface ExamItem {
+  examId: string
+  name: string
+  description: string | null
+  status: string
+  totalQuestions: number
+  createdAt: string
+}
+export interface ExamListResponse { exams: ExamItem[] }
+
+export interface CreateExamPayload {
+  name: string
+  description: string
+  totalQuestions: number
+}
+
+export interface OcrQueueItem {
+  captureId: string
+  examId: string
+  studentId: string
+  uploadedAt: string
+}
+export interface OcrQueueResponse { items: OcrQueueItem[] }
+
+export interface PendingReviewItem {
+  reviewId: string
+  captureId: string
+  ocrResultId: string
+  createdAt: string
+}
+export interface PendingReviewsResponse { reviews: PendingReviewItem[] }
+
+export interface OcrAnswer {
+  questionNumber: number
+  text: string
+  confidence: number
+}
+export interface ReviewDetailResponse {
+  reviewId: string
+  captureId: string
+  ocrResultId: string
+  status: string
+  ocrAnswers: OcrAnswer[]
+  createdAt: string
+}
+
+export interface ReviewedAnswerPayload {
+  questionNumber: number
+  text: string
+}
+
+export interface DashboardStatsResponse {
+  totalCaptures: number
+  pendingReview: number
+  verifiedToday: number
+  activeAlerts: number
+}
+
+export interface ScoreResultItem {
+  scoreId: string
+  captureId: string
+  examId: string
+  studentId: string
+  correctAnswers: number
+  totalQuestions: number
+  percentage: number
+  scoredAt: string
+}
+export interface GetResultsResponse { results: ScoreResultItem[] }
+
+export interface ScoringQueueItem {
+  captureId: string
+  examId: string
+  ocrResultId: string
+  ocrStatus: string
+  overallConfidence: number
+  completedAt: string
+}
+export interface ScoringQueueResponse { items: ScoringQueueItem[] }
+
+export interface ScoreCaptureResponse {
+  scoreId: string
+  correctAnswers: number
+  totalQuestions: number
+  percentage: number
+}
+
+export interface StatisticsResponse {
+  totalPapersScored: number
+  averagePercentage: number
+  highestScore: number
+  lowestScore: number
+}
+
+export interface StudentResultItem {
+  scoreId: string
+  captureId: string
+  examId: string
+  examName: string
+  correctAnswers: number
+  totalQuestions: number
+  percentage: number
+  scoredAt: string
+  hashHex: string
+  isVerified: boolean
+}
+export interface StudentResultsResponse {
+  studentId: string
+  results: StudentResultItem[]
+}
+
+export interface SettingsResponse {
+  ocrConfidenceThreshold: number
+  notificationsEnabled: boolean
+  notificationSeverity: string
+  accessTokenExpiryMinutes: number
+  refreshTokenExpiryDays: number
+}
+export type UpdateSettingsPayload = SettingsResponse
+
+export interface ReportSummaryResponse {
+  generatedAt: string
+  captures: { total: number; created: number; uploaded: number; verified: number; tampered: number }
+  ocr: { totalProcessed: number; averageConfidence: number }
+  scores: { totalScored: number; averagePercentage: number; highestPercentage: number; lowestPercentage: number }
+  security: { totalEvents: number; criticalEvents: number }
+}
+
+export interface RoleItem {
+  roleName: string
+  displayName: string
+  description: string
+  permissions: string[]
+}
+export interface RoleListResponse { roles: RoleItem[] }
+
+export interface MfaStatusResponse { mfaEnabled: boolean }
+export interface MfaSetupResponse { secret: string; qrUri: string }
+
+export interface ProfileResponse { email: string; role: string; mfaEnabled: boolean }
+export interface SessionItem { id: string; createdAt: string; expiresAt: string }
+export interface SessionsResponse { sessions: SessionItem[] }
+
+export interface PublicVerifyResponse {
+  captureId: string
+  isValid: boolean
+  hashValid: boolean
+  signatureValid: boolean
+  isUploaded: boolean
+  capturedAt: string | null
+}

@@ -13,6 +13,7 @@ public sealed class TriggerOcrCommandHandlerTests
 {
     private readonly ICaptureRepository _captures = Substitute.For<ICaptureRepository>();
     private readonly IImageStorage _imageStorage = Substitute.For<IImageStorage>();
+    private readonly IWatermarkService _watermark = Substitute.For<IWatermarkService>();
     private readonly IOcrService _ocrService = Substitute.For<IOcrService>();
     private readonly IOcrResultRepository _ocrResults = Substitute.For<IOcrResultRepository>();
     private readonly IManualReviewRepository _manualReviews = Substitute.For<IManualReviewRepository>();
@@ -21,9 +22,15 @@ public sealed class TriggerOcrCommandHandlerTests
 
     private static readonly byte[] ImageBytes = "exam-image"u8.ToArray();
 
-    public TriggerOcrCommandHandlerTests() =>
+    public TriggerOcrCommandHandlerTests()
+    {
+        // Watermark strips cleanly — OriginalImageLength equals full array so slicing is identity.
+        _watermark.Extract(Arg.Any<byte[]>())
+            .Returns(WatermarkExtractionResult.Success(new WatermarkPayload(), ImageBytes.Length));
+
         _sut = new TriggerOcrCommandHandler(
-            _captures, _imageStorage, _ocrService, _ocrResults, _manualReviews, _auditLog);
+            _captures, _imageStorage, _watermark, _ocrService, _ocrResults, _manualReviews, _auditLog);
+    }
 
     private static Capture UploadedCapture()
     {
@@ -56,7 +63,10 @@ public sealed class TriggerOcrCommandHandlerTests
 
         await _sut.Handle(new TriggerOcrCommand(capture.Id.Value), default);
 
-        await _ocrService.Received(1).ExtractAsync(ImageBytes, Arg.Any<CancellationToken>());
+        // Slicing creates a new array; verify by content rather than reference.
+        await _ocrService.Received(1).ExtractAsync(
+            Arg.Is<byte[]>(b => b.SequenceEqual(ImageBytes)),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -137,5 +147,42 @@ public sealed class TriggerOcrCommandHandlerTests
         await _auditLog.Received(1).AppendAsync(
             Arg.Is<AuditLog>(e => e.Action == AuditAction.OCRCompleted && e.CaptureId == capture.Id),
             Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_StripsWatermarkBeforeCallingOcrService()
+    {
+        // Stored bytes = original + trailing watermark byte; OriginalImageLength = original length.
+        var storedBytes = ImageBytes.Append((byte)0xFF).ToArray();
+        _watermark.Extract(storedBytes)
+            .Returns(WatermarkExtractionResult.Success(new WatermarkPayload(), ImageBytes.Length));
+
+        var capture = UploadedCapture();
+        _captures.GetByIdAsync(capture.Id, Arg.Any<CancellationToken>()).Returns(capture);
+        _imageStorage.RetrieveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(storedBytes);
+        _ocrService.ExtractAsync(Arg.Any<byte[]>(), Arg.Any<CancellationToken>())
+            .Returns(HighConfidenceExtraction());
+
+        await _sut.Handle(new TriggerOcrCommand(capture.Id.Value), default);
+
+        await _ocrService.Received(1).ExtractAsync(
+            Arg.Is<byte[]>(b => b.SequenceEqual(ImageBytes)),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WhenWatermarkExtractionFails_PassesFullBytesToOcr()
+    {
+        _watermark.Extract(Arg.Any<byte[]>()).Returns(WatermarkExtractionResult.Failure());
+
+        var capture = UploadedCapture();
+        _captures.GetByIdAsync(capture.Id, Arg.Any<CancellationToken>()).Returns(capture);
+        _imageStorage.RetrieveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(ImageBytes);
+        _ocrService.ExtractAsync(Arg.Any<byte[]>(), Arg.Any<CancellationToken>())
+            .Returns(HighConfidenceExtraction());
+
+        await _sut.Handle(new TriggerOcrCommand(capture.Id.Value), default);
+
+        await _ocrService.Received(1).ExtractAsync(ImageBytes, Arg.Any<CancellationToken>());
     }
 }

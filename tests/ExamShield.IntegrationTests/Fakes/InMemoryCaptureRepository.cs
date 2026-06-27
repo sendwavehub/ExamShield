@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using ExamShield.Domain.Entities;
+using ExamShield.Domain.Enums;
 using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
 
@@ -23,4 +24,21 @@ public sealed class InMemoryCaptureRepository : ICaptureRepository
 
     public Task<Capture?> GetByIdAsync(CaptureId id, CancellationToken ct = default) =>
         Task.FromResult(_store.TryGetValue(id, out var capture) ? capture : null);
+
+    public Task<IReadOnlyList<Capture>> ListAllAsync(CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<Capture>>(
+            _store.Values.OrderByDescending(c => c.CapturedAt).ToList());
+
+    public Task<IReadOnlyList<Capture>> ListByStatusAsync(CaptureStatus status, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<Capture>>(_store.Values.Where(c => c.Status == status).ToList());
+
+    public Task<IReadOnlyList<Capture>> ListByStudentIdAsync(StudentId studentId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<Capture>>(
+            _store.Values.Where(c => c.StudentId == studentId).OrderByDescending(c => c.CapturedAt).ToList());
+
+    public Task<int> CountAsync(CancellationToken ct = default) =>
+        Task.FromResult(_store.Count);
+
+    public Task<int> CountVerifiedSinceAsync(DateTimeOffset since, CancellationToken ct = default) =>
+        Task.FromResult(_store.Values.Count(c => c.Status == CaptureStatus.Verified && c.CapturedAt >= since));
 }

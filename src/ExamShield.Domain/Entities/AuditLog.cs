@@ -14,6 +14,7 @@ public sealed class AuditLog
     public string? Reason { get; private set; }
     public string PreviousHash { get; private set; } = string.Empty;
     public string ContentHash { get; private set; } = string.Empty;
+    public string ServerSignature { get; private set; } = string.Empty;
 
     private AuditLog() { } // EF Core
 
@@ -34,10 +35,11 @@ public sealed class AuditLog
             Reason = reason
         };
 
-    // Called by the repository before persisting to link this entry into the chain.
     public void SetChainHashes(string previousHash, string contentHash)
     {
         PreviousHash = previousHash;
         ContentHash = contentHash;
     }
+
+    public void SetServerSignature(string signature) => ServerSignature = signature;
 }

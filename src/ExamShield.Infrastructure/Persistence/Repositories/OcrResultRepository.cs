@@ -1,4 +1,5 @@
 using ExamShield.Domain.Entities;
+using ExamShield.Domain.Enums;
 using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,11 @@ public sealed class OcrResultRepository : IOcrResultRepository
     }
 
     public Task<OcrResult?> GetByCaptureIdAsync(CaptureId captureId, CancellationToken ct = default) =>
-        _context.OcrResults
-            .FirstOrDefaultAsync(r => r.CaptureId == captureId, ct);
+        _context.OcrResults.FirstOrDefaultAsync(r => r.CaptureId == captureId, ct);
+
+    public Task<OcrResult?> GetByIdAsync(OcrResultId id, CancellationToken ct = default) =>
+        _context.OcrResults.FirstOrDefaultAsync(r => r.Id == id, ct);
+
+    public async Task<IReadOnlyList<OcrResult>> ListCompletedAsync(CancellationToken ct = default) =>
+        await _context.OcrResults.Where(r => r.Status == OcrStatus.Completed).ToListAsync(ct);
 }

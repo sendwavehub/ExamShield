@@ -19,4 +19,10 @@ public sealed class DeviceRepository : IDeviceRepository
 
     public Task<Device?> GetByIdAsync(DeviceId id, CancellationToken ct = default) =>
         _context.Devices.FirstOrDefaultAsync(d => d.Id == id, ct);
+
+    public async Task<IReadOnlyList<Device>> ListAllAsync(CancellationToken ct = default) =>
+        await _context.Devices.OrderByDescending(d => d.RegisteredAt).ToListAsync(ct);
+
+    public async Task SaveAsync(Device device, CancellationToken ct = default) =>
+        await _context.SaveChangesAsync(ct);
 }

@@ -1,4 +1,5 @@
 using ExamShield.Api.Contracts;
+using ExamShield.Api.RateLimiting;
 using ExamShield.Application.Commands.UploadImage;
 using MediatR;
 
@@ -12,10 +13,12 @@ public static class UploadEndpoints
             .WithName("UploadImage")
             .WithTags("Upload")
             .RequireAuthorization("Operator")
+            .RequireRateLimiting(RateLimitingExtensions.UploadPolicy)
             .Produces<UploadImageResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         return app;
     }

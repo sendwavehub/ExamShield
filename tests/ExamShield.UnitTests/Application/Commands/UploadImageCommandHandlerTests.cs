@@ -18,6 +18,7 @@ public sealed class UploadImageCommandHandlerTests
     private readonly IImageStorage _imageStorage = Substitute.For<IImageStorage>();
     private readonly IAuditLogRepository _auditLog = Substitute.For<IAuditLogRepository>();
     private readonly IWatermarkService _watermarkService = Substitute.For<IWatermarkService>();
+    private readonly ISecurityEventRepository _securityEvents = Substitute.For<ISecurityEventRepository>();
     private readonly HashVerificationService _hashService = new();
     private readonly UploadImageCommandHandler _sut;
 
@@ -33,7 +34,7 @@ public sealed class UploadImageCommandHandlerTests
             .Returns("captures/test-key");
 
         _sut = new UploadImageCommandHandler(
-            _repository, _hashService, _imageStorage, _auditLog, _watermarkService);
+            _repository, _hashService, _imageStorage, _auditLog, _watermarkService, _securityEvents);
     }
 
     private Capture CaptureWithSampleHash()
@@ -161,5 +162,31 @@ public sealed class UploadImageCommandHandlerTests
         var act = () => _sut.Handle(new UploadImageCommand(capture.Id.Value, SampleImage), CancellationToken.None);
 
         await act.Should().ThrowAsync<DuplicateUploadException>();
+    }
+
+    [Fact]
+    public async Task Handle_WhenAlreadyUploaded_RecordsDuplicateUploadSecurityEvent()
+    {
+        var capture = CaptureWithSampleHash();
+        capture.RecordUpload("captures/existing-key");
+
+        try { await _sut.Handle(new UploadImageCommand(capture.Id.Value, SampleImage), CancellationToken.None); }
+        catch (DuplicateUploadException) { }
+
+        await _securityEvents.Received(1).AddAsync(
+            Arg.Is<SecurityEvent>(e => e.EventType == SecurityEventType.DuplicateUpload),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WhenAlreadyUploaded_DoesNotStoreImage()
+    {
+        var capture = CaptureWithSampleHash();
+        capture.RecordUpload("captures/existing-key");
+
+        try { await _sut.Handle(new UploadImageCommand(capture.Id.Value, SampleImage), CancellationToken.None); }
+        catch (DuplicateUploadException) { }
+
+        await _imageStorage.DidNotReceive().StoreAsync(Arg.Any<Guid>(), Arg.Any<byte[]>(), Arg.Any<CancellationToken>());
     }
 }

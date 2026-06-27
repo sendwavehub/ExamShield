@@ -46,28 +46,22 @@ public sealed class OcrEndpointsTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public async Task PostOcr_WithUploadedCapture_Returns200()
+    public async Task PostOcr_WithUploadedCapture_Returns202Accepted()
     {
         var response = await _client.PostAsync($"/ocr/{_captureId}", null);
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
     }
 
     [Fact]
-    public async Task PostOcr_WithUploadedCapture_ReturnsOcrResultId()
-    {
-        var response = await _client.PostAsync($"/ocr/{_captureId}", null);
-        var body = await response.Content.ReadFromJsonAsync<TriggerOcrResponse>();
-        body!.OcrResultId.Should().NotBe(Guid.Empty);
-    }
-
-    [Fact]
-    public async Task GetOcr_AfterTrigger_ReturnsOcrResult()
+    public async Task GetOcr_AfterTrigger_Returns200WithResult()
     {
         await _client.PostAsync($"/ocr/{_captureId}", null);
 
         var response = await _client.GetAsync($"/ocr/{_captureId}");
+        var body = await response.Content.ReadFromJsonAsync<GetOcrResultResponse>();
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body!.OcrResultId.Should().NotBe(Guid.Empty);
     }
 
     [Fact]

@@ -29,4 +29,7 @@ public sealed class InMemoryScoreRepository : IScoreRepository
 
     public Task<IReadOnlyList<Score>> GetByExamIdAsync(ExamId examId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<Score>>(_store.Values.Where(s => s.ExamId == examId).ToList());
+
+    public Task<bool> ExistsByCaptureIdAsync(CaptureId captureId, CancellationToken ct = default) =>
+        Task.FromResult(_store.Values.Any(s => s.CaptureId == captureId));
 }

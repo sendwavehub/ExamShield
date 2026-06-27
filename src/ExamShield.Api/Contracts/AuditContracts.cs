@@ -13,7 +13,8 @@ public sealed record AuditLogEntryResponse(
     string IpAddress,
     DateTimeOffset OccurredAt,
     string? Reason,
-    string ContentHash
+    string ContentHash,
+    string ServerSignature
 );
 
 public sealed record VerifyAuditChainResponse(

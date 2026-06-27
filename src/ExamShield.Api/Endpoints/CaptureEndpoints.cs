@@ -1,6 +1,10 @@
 using ExamShield.Api.Contracts;
 using ExamShield.Application.Commands.RegisterCapture;
 using ExamShield.Application.Commands.VerifyIntegrity;
+using ExamShield.Application.Queries.GetCaptures;
+using ExamShield.Domain.Exceptions;
+using ExamShield.Domain.Interfaces;
+using ExamShield.Domain.ValueObjects;
 using MediatR;
 
 namespace ExamShield.Api.Endpoints;
@@ -10,6 +14,22 @@ public static class CaptureEndpoints
     public static IEndpointRouteBuilder MapCaptureEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/capture").WithTags("Capture");
+
+        // GET /captures — list all captures (outside /capture group to keep plural consistent)
+        app.MapGet("/captures", async (IMediator mediator, CancellationToken ct) =>
+        {
+            var result = await mediator.Send(new GetCapturesQuery(), ct);
+            var items = result.Captures
+                .Select(c => new CaptureListItem(
+                    c.CaptureId, c.ExamId, c.StudentId, c.DeviceId,
+                    c.Status, c.CapturedAt, c.StorageKey))
+                .ToList();
+            return Results.Ok(new CaptureListResponse(items));
+        })
+        .WithName("GetCaptures")
+        .WithTags("Capture")
+        .RequireAuthorization("Operator")
+        .Produces<CaptureListResponse>();
 
         group.MapPost("/", RegisterCaptureAsync)
             .WithName("RegisterCapture")
@@ -21,6 +41,14 @@ public static class CaptureEndpoints
             .WithName("VerifyCapture")
             .RequireAuthorization("Operator")
             .Produces<VerifyIntegrityResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        // Also register the /captures/{id}/image route on the root app (not under /capture group)
+        app.MapGet("/captures/{id:guid}/image", GetCaptureImageAsync)
+            .WithName("GetCaptureImage")
+            .WithTags("Capture")
+            .RequireAuthorization("Operator")
+            .Produces<byte[]>(StatusCodes.Status200OK, "application/octet-stream")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         return app;
@@ -48,5 +76,21 @@ public static class CaptureEndpoints
 
         return Results.Ok(new VerifyIntegrityResponse(
             result.IsValid, result.ExpectedHash, result.ActualHash));
+    }
+
+    private static async Task<IResult> GetCaptureImageAsync(
+        Guid id,
+        ICaptureRepository captures,
+        IImageStorage imageStorage,
+        CancellationToken ct)
+    {
+        var capture = await captures.GetByIdAsync(new CaptureId(id), ct)
+            ?? throw new CaptureNotFoundException(id);
+
+        if (capture.StorageKey is null)
+            return Results.NotFound("Image not yet uploaded.");
+
+        var bytes = await imageStorage.RetrieveAsync(capture.StorageKey, ct);
+        return Results.Bytes(bytes, "application/octet-stream");
     }
 }

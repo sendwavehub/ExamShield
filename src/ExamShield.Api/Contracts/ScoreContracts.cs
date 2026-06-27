@@ -17,3 +17,9 @@ public sealed record GetResultsResponse(IReadOnlyList<ScoreResultItem> Results);
 
 public sealed record GetStatisticsResponse(
     int TotalPapersScored, double AveragePercentage, int HighestScore, int LowestScore);
+
+public sealed record ScoringQueueItemResponse(
+    Guid CaptureId, Guid ExamId, Guid OcrResultId,
+    string OcrStatus, double OverallConfidence, DateTimeOffset CompletedAt);
+
+public sealed record ScoringQueueResponse(IReadOnlyList<ScoringQueueItemResponse> Items);

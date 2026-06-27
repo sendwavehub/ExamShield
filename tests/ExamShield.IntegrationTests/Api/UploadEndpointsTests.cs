@@ -98,4 +98,20 @@ public sealed class UploadEndpointsTests : IClassFixture<TestWebApplicationFacto
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
+
+    [Fact]
+    public async Task PostUpload_WhenAlreadyUploaded_RecordsDuplicateUploadSecurityEvent()
+    {
+        var captureId = await RegisterCaptureAsync();
+        var request = new UploadImageRequest(captureId, SampleImage);
+        await _client.PostAsJsonAsync("/upload", request);
+        await _client.PostAsJsonAsync("/upload", request); // duplicate
+
+        var eventsRes = await _client.GetAsync("/security/events?limit=50");
+        var body = await eventsRes.Content.ReadFromJsonAsync<SecurityEventListDto>();
+        body!.Events.Should().Contain(e => e.EventType == "DuplicateUpload");
+    }
+
+    private sealed record SecurityEventListDto(List<SecurityEventDto> Events);
+    private sealed record SecurityEventDto(string EventType, string Severity, string Message);
 }

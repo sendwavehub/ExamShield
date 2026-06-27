@@ -16,19 +16,22 @@ public sealed class UploadImageCommandHandler : IRequestHandler<UploadImageComma
     private readonly IImageStorage _imageStorage;
     private readonly IAuditLogRepository _auditLog;
     private readonly IWatermarkService _watermarkService;
+    private readonly ISecurityEventRepository _securityEvents;
 
     public UploadImageCommandHandler(
         ICaptureRepository repository,
         HashVerificationService hashService,
         IImageStorage imageStorage,
         IAuditLogRepository auditLog,
-        IWatermarkService watermarkService)
+        IWatermarkService watermarkService,
+        ISecurityEventRepository securityEvents)
     {
         _repository = repository;
         _hashService = hashService;
         _imageStorage = imageStorage;
         _auditLog = auditLog;
         _watermarkService = watermarkService;
+        _securityEvents = securityEvents;
     }
 
     public async Task<UploadImageResult> Handle(UploadImageCommand command, CancellationToken ct)
@@ -39,9 +42,26 @@ public sealed class UploadImageCommandHandler : IRequestHandler<UploadImageComma
         var capture = await _repository.GetByIdAsync(new CaptureId(command.CaptureId), ct)
             ?? throw new CaptureNotFoundException(command.CaptureId);
 
+        if (capture.Status != CaptureStatus.Created)
+        {
+            await _securityEvents.AddAsync(SecurityEvent.Create(
+                SecurityEventType.DuplicateUpload,
+                SecuritySeverity.Warning,
+                $"Duplicate upload attempt for capture {command.CaptureId}.",
+                captureId: command.CaptureId), ct);
+            throw new DuplicateUploadException(command.CaptureId);
+        }
+
         var actualHash = _hashService.ComputeHash(command.ImageBytes);
         if (actualHash != capture.ExpectedHash)
+        {
+            await _securityEvents.AddAsync(SecurityEvent.Create(
+                SecurityEventType.HashMismatch,
+                SecuritySeverity.Critical,
+                $"Hash mismatch for capture {command.CaptureId}. Expected {capture.ExpectedHash.Hex}, got {actualHash.Hex}.",
+                captureId: command.CaptureId), ct);
             throw new HashMismatchException(command.CaptureId, capture.ExpectedHash, actualHash);
+        }
 
         var payload = new WatermarkPayload
         {

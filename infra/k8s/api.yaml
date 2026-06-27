@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-secret
+  namespace: examshield
+type: Opaque
+stringData:
+  Jwt__Secret: "CHANGE_ME_TO_A_STRONG_SECRET_AT_LEAST_32_CHARS"
+  Watermark__HmacKeyBase64: "CHANGE_ME_BASE64_ENCODED_32_BYTE_KEY"
+  ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=examshield;Username=examshield;Password=CHANGE_ME"
+  Cache__ConnectionString: "redis:6379"
+  Messaging__Password: "CHANGE_ME"
+  Storage__AccessKey: "CHANGE_ME"
+  Storage__SecretKey: "CHANGE_ME"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: examshield
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  Jwt__Issuer: "ExamShield"
+  Jwt__Audience: "ExamShield"
+  Jwt__ExpirationMinutes: "60"
+  Cache__Type: "Redis"
+  Messaging__Type: "RabbitMQ"
+  Messaging__Host: "rabbitmq"
+  Messaging__Port: "5672"
+  Messaging__Username: "examshield"
+  Messaging__VirtualHost: "/"
+  Messaging__OcrQueueName: "ocr.requests"
+  Storage__Type: "MinIO"
+  Storage__Endpoint: "minio:9000"
+  Storage__BucketName: "examshield"
+  Storage__UseSSL: "false"
+  Storage__EnableObjectLock: "true"
+  Storage__RetentionDays: "3650"
+  Storage__RetentionMode: "COMPLIANCE"
+  Ocr__Type: "Stub"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: examshield
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: examshield-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: api-config
+            - secretRef:
+                name: api-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: examshield
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress
+  namespace: examshield
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.examshield.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 80
