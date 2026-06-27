@@ -6,8 +6,10 @@ public sealed record RegisterDeviceResponse(Guid DeviceId);
 
 public sealed record DeviceResponse(
     Guid DeviceId, string Name, string Status, bool IsActive,
-    DateTimeOffset RegisteredAt, DateTimeOffset? LastSeenAt);
+    DateTimeOffset RegisteredAt, DateTimeOffset? LastSeenAt, string? BlacklistReason);
 
 public sealed record DeviceListResponse(IReadOnlyList<DeviceResponse> Devices);
 
 public sealed record DeviceHeartbeatResponse(Guid DeviceId, DateTimeOffset LastSeenAt);
+
+public sealed record BlacklistDeviceRequest(string Reason);

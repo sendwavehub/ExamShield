@@ -29,6 +29,7 @@ internal sealed class DeviceConfiguration : IEntityTypeConfiguration<Device>
                 v => new DateTimeOffset(v, TimeSpan.Zero));
 
         builder.Property(d => d.Status);
+        builder.Property(d => d.BlacklistReason).HasMaxLength(1000).IsRequired(false);
 
         builder.Ignore(d => d.IsActive);
         builder.Ignore(d => d.DomainEvents);

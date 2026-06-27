@@ -32,6 +32,14 @@ export function useEnableDevice() {
   })
 }
 
+export function useBlacklistDevice() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.blacklistDevice(id, reason),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['devices'] }),
+  })
+}
+
 export function useDeviceHeartbeat() {
   const qc = useQueryClient()
   return useMutation({

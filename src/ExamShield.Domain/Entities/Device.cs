@@ -12,6 +12,7 @@ public sealed class Device : AggregateRoot
     public DateTimeOffset RegisteredAt { get; private set; }
     public DeviceStatus Status { get; private set; }
     public bool IsActive => Status == DeviceStatus.Approved;
+    public string? BlacklistReason { get; private set; }
     public DateTimeOffset? LastSeenAt { get; private set; }
 
     private Device() { } // EF Core
@@ -36,7 +37,22 @@ public sealed class Device : AggregateRoot
 
     public void Approve()  => Status = DeviceStatus.Approved;
     public void Disable()  => Status = DeviceStatus.Disabled;
-    public void Enable()   => Status = DeviceStatus.Approved;
+
+    public void Enable()
+    {
+        if (Status == DeviceStatus.Blacklisted)
+            throw new InvalidOperationException("A blacklisted device cannot be re-enabled.");
+        Status = DeviceStatus.Approved;
+    }
+
+    public void Blacklist(string reason)
+    {
+        if (Status == DeviceStatus.Blacklisted)
+            throw new InvalidOperationException("Device is already blacklisted.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason, nameof(reason));
+        Status = DeviceStatus.Blacklisted;
+        BlacklistReason = reason.Trim();
+    }
 
     public void RecordHeartbeat()
     {

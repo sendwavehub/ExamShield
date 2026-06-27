@@ -3,6 +3,7 @@ using ExamShield.Application.Commands.ApproveDevice;
 using ExamShield.Application.Commands.DeviceHeartbeat;
 using ExamShield.Application.Commands.DisableDevice;
 using ExamShield.Application.Commands.EnableDevice;
+using ExamShield.Application.Commands.BlacklistDevice;
 using ExamShield.Application.Commands.RegisterDevice;
 using ExamShield.Application.Queries.GetDevices;
 using MediatR;
@@ -47,6 +48,14 @@ public static class DeviceEndpoints
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        app.MapPut("/devices/{id:guid}/blacklist", BlacklistDeviceAsync)
+            .WithName("BlacklistDevice")
+            .WithTags("Device")
+            .RequireAuthorization("Administrator")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
         app.MapPost("/devices/{id:guid}/heartbeat", HeartbeatAsync)
             .WithName("DeviceHeartbeat")
             .WithTags("Device")
@@ -71,7 +80,7 @@ public static class DeviceEndpoints
         var result = await sender.Send(new GetDevicesQuery(), ct);
         var response = new DeviceListResponse(
             result.Devices.Select(d =>
-                new DeviceResponse(d.DeviceId, d.Name, d.Status, d.IsActive, d.RegisteredAt, d.LastSeenAt)).ToList());
+                new DeviceResponse(d.DeviceId, d.Name, d.Status, d.IsActive, d.RegisteredAt, d.LastSeenAt, d.BlacklistReason)).ToList());
         return Results.Ok(response);
     }
 
@@ -90,8 +99,24 @@ public static class DeviceEndpoints
 
     private static async Task<IResult> EnableDeviceAsync(Guid id, ISender sender, CancellationToken ct)
     {
-        await sender.Send(new EnableDeviceCommand(id), ct);
-        return Results.NoContent();
+        try
+        {
+            await sender.Send(new EnableDeviceCommand(id), ct);
+            return Results.NoContent();
+        }
+        catch (InvalidOperationException e) { return Results.UnprocessableEntity(new { error = e.Message }); }
+    }
+
+    private static async Task<IResult> BlacklistDeviceAsync(
+        Guid id, BlacklistDeviceRequest request, ISender sender, CancellationToken ct)
+    {
+        try
+        {
+            await sender.Send(new BlacklistDeviceCommand(id, request.Reason), ct);
+            return Results.NoContent();
+        }
+        catch (KeyNotFoundException)   { return Results.NotFound(); }
+        catch (InvalidOperationException e) { return Results.UnprocessableEntity(new { error = e.Message }); }
     }
 
     private static async Task<IResult> HeartbeatAsync(Guid id, ISender sender, CancellationToken ct)

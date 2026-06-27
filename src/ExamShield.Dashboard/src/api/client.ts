@@ -44,6 +44,7 @@ export interface DeviceEntry {
   isActive: boolean
   registeredAt: string
   lastSeenAt: string | null
+  blacklistReason: string | null
 }
 export interface DeviceListResponse { devices: DeviceEntry[] }
 
@@ -111,6 +112,12 @@ export const api = {
 
   enableDevice: (id: string) =>
     request<void>(`/devices/${id}/enable`, { method: 'PUT' }),
+
+  blacklistDevice: (id: string, reason: string) =>
+    request<void>(`/devices/${id}/blacklist`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    }),
 
   deviceHeartbeat: (id: string) =>
     request<{ deviceId: string; lastSeenAt: string }>(`/devices/${id}/heartbeat`, { method: 'POST' }),

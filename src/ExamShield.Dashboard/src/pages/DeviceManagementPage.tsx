@@ -1,4 +1,5 @@
-import { useDevices, useApproveDevice, useDisableDevice, useEnableDevice, useDeviceHeartbeat } from '../hooks/useDevices'
+import { useState } from 'react'
+import { useDevices, useApproveDevice, useDisableDevice, useEnableDevice, useBlacklistDevice, useDeviceHeartbeat } from '../hooks/useDevices'
 import StatusChip from '../components/ui/StatusChip'
 import type { DeviceEntry } from '../api/client'
 
@@ -15,17 +16,21 @@ function healthStatus(lastSeenAt: string | null): { label: string; variant: 'suc
 }
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'danger' | 'muted'> = {
-  Approved: 'success',
-  Pending:  'warning',
-  Disabled: 'danger',
+  Approved:    'success',
+  Pending:     'warning',
+  Disabled:    'danger',
+  Blacklisted: 'danger',
 }
 
 function DeviceRow({ device }: { device: DeviceEntry }) {
   const approve   = useApproveDevice()
   const disable   = useDisableDevice()
   const enable    = useEnableDevice()
+  const blacklist = useBlacklistDevice()
   const heartbeat = useDeviceHeartbeat()
-  const busy      = approve.isPending || disable.isPending || enable.isPending
+  const busy      = approve.isPending || disable.isPending || enable.isPending || blacklist.isPending
+  const [showBlacklistInput, setShowBlacklistInput] = useState(false)
+  const [blacklistReason, setBlacklistReason]       = useState('')
 
   const health = healthStatus(device.lastSeenAt)
 
@@ -81,6 +86,43 @@ function DeviceRow({ device }: { device: DeviceEntry }) {
             >
               Re-enable
             </button>
+          )}
+          {device.status !== 'Blacklisted' && !showBlacklistInput && (
+            <button
+              onClick={() => setShowBlacklistInput(true)}
+              disabled={busy}
+              className="rounded-md border border-rose-700/40 px-3 py-1 text-xs text-rose-600 hover:bg-rose-700/10 disabled:opacity-40"
+            >
+              Blacklist
+            </button>
+          )}
+          {showBlacklistInput && (
+            <div className="flex items-center gap-1">
+              <input
+                value={blacklistReason}
+                onChange={e => setBlacklistReason(e.target.value)}
+                placeholder="Reason…"
+                className="rounded border px-2 py-1 text-xs bg-background w-28"
+              />
+              <button
+                disabled={!blacklistReason.trim() || blacklist.isPending}
+                onClick={() => blacklist.mutate({ id: device.deviceId, reason: blacklistReason }, {
+                  onSuccess: () => { setShowBlacklistInput(false); setBlacklistReason('') },
+                })}
+                className="rounded px-2 py-1 text-xs bg-rose-700 text-white disabled:opacity-40"
+              >
+                Confirm
+              </button>
+              <button onClick={() => setShowBlacklistInput(false)}
+                className="rounded px-2 py-1 text-xs border border-border text-muted-foreground">
+                ✕
+              </button>
+            </div>
+          )}
+          {device.status === 'Blacklisted' && device.blacklistReason && (
+            <span className="text-xs text-rose-600/70 italic" title={device.blacklistReason}>
+              {device.blacklistReason.slice(0, 30)}{device.blacklistReason.length > 30 ? '…' : ''}
+            </span>
           )}
         </div>
       </td>
