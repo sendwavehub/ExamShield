@@ -51,6 +51,22 @@ public sealed class ManualReviewConfiguration : IEntityTypeConfiguration<ManualR
                 ticks => ticks.HasValue ? new DateTimeOffset(ticks.Value, TimeSpan.Zero) : (DateTimeOffset?)null)
             .IsRequired(false);
 
+        builder.Property(e => e.SupervisorId)
+            .HasConversion(
+                id => id == null ? (Guid?)null : id.Value,
+                v => v == null ? null : new UserId(v.Value))
+            .IsRequired(false);
+
+        builder.Property(e => e.RejectionReason)
+            .HasMaxLength(1000)
+            .IsRequired(false);
+
+        builder.Property(e => e.SupervisedAt)
+            .HasConversion(
+                dto => dto.HasValue ? (long?)dto.Value.UtcTicks : null,
+                ticks => ticks.HasValue ? new DateTimeOffset(ticks.Value, TimeSpan.Zero) : (DateTimeOffset?)null)
+            .IsRequired(false);
+
         builder.Property(e => e.ReviewedAnswers)
             .HasConversion(AnswersConverter)
             .HasColumnType("TEXT")

@@ -1,8 +1,11 @@
 using System.Security.Claims;
 using ExamShield.Api.Contracts;
+using ExamShield.Application.Commands.ApproveReview;
+using ExamShield.Application.Commands.RejectReview;
 using ExamShield.Application.Commands.SubmitReview;
 using ExamShield.Application.Queries.GetPendingReviews;
 using ExamShield.Application.Queries.GetReviewDetail;
+using ExamShield.Domain.Exceptions;
 using MediatR;
 
 namespace ExamShield.Api.Endpoints;
@@ -48,5 +51,46 @@ public static class ManualReviewEndpoints
             return Results.Ok();
         })
         .RequireAuthorization("Operator");
+
+        app.MapPut("/reviews/{reviewId:guid}/approve", async (
+            Guid reviewId, ClaimsPrincipal user, IMediator mediator, CancellationToken ct) =>
+        {
+            var supervisorId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            try
+            {
+                await mediator.Send(new ApproveReviewCommand(reviewId, supervisorId), ct);
+                return Results.NoContent();
+            }
+            catch (ManualReviewNotFoundException)
+            {
+                return Results.NotFound();
+            }
+        })
+        .WithName("ApproveReview")
+        .WithTags("Review")
+        .RequireAuthorization("Supervisor")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status404NotFound);
+
+        app.MapPut("/reviews/{reviewId:guid}/reject", async (
+            Guid reviewId, RejectReviewRequest request,
+            ClaimsPrincipal user, IMediator mediator, CancellationToken ct) =>
+        {
+            var supervisorId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            try
+            {
+                await mediator.Send(new RejectReviewCommand(reviewId, supervisorId, request.Reason), ct);
+                return Results.NoContent();
+            }
+            catch (ManualReviewNotFoundException)
+            {
+                return Results.NotFound();
+            }
+        })
+        .WithName("RejectReview")
+        .WithTags("Review")
+        .RequireAuthorization("Supervisor")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status404NotFound);
     }
 }

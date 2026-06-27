@@ -13,6 +13,9 @@ public sealed class ManualReview : AggregateRoot
     public IReadOnlyList<ReviewedAnswer> ReviewedAnswers { get; private set; } = [];
     public UserId? ReviewedBy { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
+    public UserId? SupervisorId { get; private set; }
+    public string? RejectionReason { get; private set; }
+    public DateTimeOffset? SupervisedAt { get; private set; }
 
     private ManualReview() { }
 
@@ -41,5 +44,29 @@ public sealed class ManualReview : AggregateRoot
         ReviewedBy = reviewedBy;
         Status = ManualReviewStatus.Completed;
         CompletedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Approve(UserId supervisorId)
+    {
+        if (Status != ManualReviewStatus.Completed)
+            throw new InvalidOperationException("Only a completed review can be approved.");
+        ArgumentNullException.ThrowIfNull(supervisorId);
+
+        SupervisorId = supervisorId;
+        SupervisedAt = DateTimeOffset.UtcNow;
+        Status = ManualReviewStatus.Approved;
+    }
+
+    public void Reject(string reason, UserId supervisorId)
+    {
+        if (Status != ManualReviewStatus.Completed)
+            throw new InvalidOperationException("Only a completed review can be rejected.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason, nameof(reason));
+        ArgumentNullException.ThrowIfNull(supervisorId);
+
+        SupervisorId = supervisorId;
+        RejectionReason = reason;
+        SupervisedAt = DateTimeOffset.UtcNow;
+        Status = ManualReviewStatus.Rejected;
     }
 }

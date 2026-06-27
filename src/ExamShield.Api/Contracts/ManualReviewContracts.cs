@@ -17,3 +17,5 @@ public sealed record ReviewDetailResponse(
     IReadOnlyList<OcrAnswerResponse> OcrAnswers,
     DateTimeOffset CreatedAt
 );
+
+public sealed record RejectReviewRequest(string Reason);
