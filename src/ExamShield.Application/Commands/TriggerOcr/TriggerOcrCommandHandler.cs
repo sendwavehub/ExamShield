@@ -42,6 +42,9 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
         var capture = await _captures.GetByIdAsync(new CaptureId(command.CaptureId), ct)
             ?? throw new CaptureNotFoundException(command.CaptureId);
 
+        if (capture.Status == CaptureStatus.Tampered)
+            throw new CaptureAlreadyTamperedException(command.CaptureId);
+
         if (capture.StorageKey is null)
             throw new CaptureNotUploadedException(command.CaptureId);
 
