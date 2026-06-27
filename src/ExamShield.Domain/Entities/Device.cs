@@ -35,7 +35,12 @@ public sealed class Device : AggregateRoot
         return device;
     }
 
-    public void Approve()  => Status = DeviceStatus.Approved;
+    public void Approve()
+    {
+        if (Status == DeviceStatus.Blacklisted)
+            throw new InvalidOperationException("A blacklisted device cannot be approved.");
+        Status = DeviceStatus.Approved;
+    }
     public void Disable()  => Status = DeviceStatus.Disabled;
 
     public void Enable()
