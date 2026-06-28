@@ -62,6 +62,14 @@ public sealed class MfaEndpointTests(TestWebApplicationFactory factory)
     public async Task DisableMfa_SetsMfaEnabledFalse()
     {
         var client = await AuthedClient();
+
+        // If MFA is already enabled by a prior test sharing this user, disable any existing
+        // enrollment first, then re-enroll so this test owns a known secret.
+        var status = await (await client.GetAsync("/auth/mfa/status"))
+            .Content.ReadFromJsonAsync<MfaStatusDto>();
+        if (status!.MfaEnabled)
+            await client.DeleteAsync("/auth/mfa/");
+
         var setup = await (await client.PostAsync("/auth/mfa/setup", null))
             .Content.ReadFromJsonAsync<MfaSetupDto>();
 
