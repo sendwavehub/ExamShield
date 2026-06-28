@@ -13,6 +13,9 @@ public sealed class DeviceCertificateRepository(ExamShieldDbContext db) : IDevic
         await db.SaveChangesAsync(ct);
     }
 
+    public Task<DeviceCertificate?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        db.DeviceCertificates.FirstOrDefaultAsync(c => c.Id == id, ct);
+
     public Task<DeviceCertificate?> GetActiveAsync(DeviceId deviceId, CancellationToken ct = default) =>
         db.DeviceCertificates
             .Where(c => c.DeviceId == deviceId && c.RevokedAt == null && c.ExpiresAt > DateTimeOffset.UtcNow)

@@ -13,3 +13,7 @@ public sealed record DeviceListResponse(IReadOnlyList<DeviceResponse> Devices);
 public sealed record DeviceHeartbeatResponse(Guid DeviceId, DateTimeOffset LastSeenAt);
 
 public sealed record BlacklistDeviceRequest(string Reason);
+
+public sealed record IssueCertificateRequest(string PublicKeyPem, int ValidDays = 365);
+
+public sealed record RevokeCertificateRequest(string Reason);

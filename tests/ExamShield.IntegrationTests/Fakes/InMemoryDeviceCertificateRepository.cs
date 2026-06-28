@@ -15,6 +15,9 @@ public sealed class InMemoryDeviceCertificateRepository : IDeviceCertificateRepo
         return Task.CompletedTask;
     }
 
+    public Task<DeviceCertificate?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        Task.FromResult(_store.GetValueOrDefault(id));
+
     public Task<DeviceCertificate?> GetActiveAsync(DeviceId deviceId, CancellationToken ct = default)
     {
         var result = _store.Values

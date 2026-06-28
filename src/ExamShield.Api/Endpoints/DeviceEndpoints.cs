@@ -4,7 +4,10 @@ using ExamShield.Application.Commands.DeviceHeartbeat;
 using ExamShield.Application.Commands.DisableDevice;
 using ExamShield.Application.Commands.EnableDevice;
 using ExamShield.Application.Commands.BlacklistDevice;
+using ExamShield.Application.Commands.IssueCertificate;
 using ExamShield.Application.Commands.RegisterDevice;
+using ExamShield.Application.Commands.RevokeCertificate;
+using ExamShield.Application.Queries.GetDeviceCertificates;
 using ExamShield.Application.Queries.GetDevices;
 using MediatR;
 
@@ -61,6 +64,27 @@ public static class DeviceEndpoints
             .WithTags("Device")
             .RequireAuthorization("Operator")
             .Produces<DeviceHeartbeatResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        app.MapPost("/devices/{id:guid}/certificates", IssueCertificateAsync)
+            .WithName("IssueCertificate")
+            .WithTags("Device")
+            .RequireAuthorization("Administrator")
+            .Produces<IssueCertificateResult>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        app.MapGet("/devices/{id:guid}/certificates", ListCertificatesAsync)
+            .WithName("ListDeviceCertificates")
+            .WithTags("Device")
+            .RequireAuthorization("Administrator")
+            .Produces<IReadOnlyList<DeviceCertificateDto>>();
+
+        app.MapPost("/devices/{id:guid}/certificates/{certId:guid}/revoke", RevokeCertificateAsync)
+            .WithName("RevokeCertificate")
+            .WithTags("Device")
+            .RequireAuthorization("Administrator")
+            .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
@@ -123,5 +147,34 @@ public static class DeviceEndpoints
     {
         var result = await sender.Send(new DeviceHeartbeatCommand(id), ct);
         return Results.Ok(new DeviceHeartbeatResponse(result.DeviceId, result.LastSeenAt));
+    }
+
+    private static async Task<IResult> IssueCertificateAsync(
+        Guid id, IssueCertificateRequest request, ISender sender, CancellationToken ct)
+    {
+        try
+        {
+            var result = await sender.Send(new IssueCertificateCommand(id, request.PublicKeyPem, request.ValidDays), ct);
+            return Results.Created($"/devices/{id}/certificates/{result.CertificateId}", result);
+        }
+        catch (KeyNotFoundException) { return Results.NotFound(); }
+    }
+
+    private static async Task<IResult> ListCertificatesAsync(Guid id, ISender sender, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetDeviceCertificatesQuery(id), ct);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> RevokeCertificateAsync(
+        Guid id, Guid certId, RevokeCertificateRequest request, ISender sender, CancellationToken ct)
+    {
+        try
+        {
+            await sender.Send(new RevokeCertificateCommand(certId, request.Reason), ct);
+            return Results.NoContent();
+        }
+        catch (KeyNotFoundException) { return Results.NotFound(); }
+        catch (InvalidOperationException e) { return Results.UnprocessableEntity(new { error = e.Message }); }
     }
 }
