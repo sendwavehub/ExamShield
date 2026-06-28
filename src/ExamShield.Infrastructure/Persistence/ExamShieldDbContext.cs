@@ -22,6 +22,7 @@ public class ExamShieldDbContext : DbContext
     public DbSet<ReviewRequest> ReviewRequests => Set<ReviewRequest>();
     public DbSet<ExamAnswerKey> ExamAnswerKeys => Set<ExamAnswerKey>();
     public DbSet<ExamCandidate> ExamCandidates => Set<ExamCandidate>();
+    public DbSet<DeviceCertificate> DeviceCertificates => Set<DeviceCertificate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ExamShieldDbContext).Assembly);

@@ -67,6 +67,7 @@ public sealed class UploadImageCommandHandler : IRequestHandler<UploadImageComma
         {
             ExamId = capture.ExamId.Value,
             CaptureId = capture.Id.Value,
+            DeviceId = capture.DeviceId.Value,
             TimestampUtcTicks = DateTimeOffset.UtcNow.UtcTicks,
             Nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)),
             ImageHash = capture.ExpectedHash.Hex

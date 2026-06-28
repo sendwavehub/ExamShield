@@ -182,6 +182,7 @@ app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async ctx =>
         UserNotFoundException        => (404, ex.Message),
         UnauthorizedAccessException e => (403, e.Message),
         KeyNotFoundException e        => (404, e.Message),
+        WatermarkTamperedException e => (422, e.Message),
         InvalidOperationException e  => (422, e.Message),
         ArgumentException e          => (400, e.Message),
         _                            => (500, "An unexpected error occurred.")

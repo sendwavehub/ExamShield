@@ -108,6 +108,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IPasswordResetTokenRepository>();
             services.AddSingleton<IPasswordResetTokenRepository, InMemoryPasswordResetTokenRepository>();
 
+            services.RemoveAll<IDeviceCertificateRepository>();
+            services.AddSingleton<IDeviceCertificateRepository, InMemoryDeviceCertificateRepository>();
+
             // Swap real SMTP email sender for a no-op (no SMTP server in CI).
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender, NullEmailSender>();

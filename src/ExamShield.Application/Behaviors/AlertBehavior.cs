@@ -42,6 +42,12 @@ public sealed class AlertBehavior<TRequest, TResponse> : IPipelineBehavior<TRequ
             await BroadcastSecurityAlertAsync(ex.Message, NotificationSeverity.High, ct);
             throw;
         }
+        catch (WatermarkTamperedException ex)
+        {
+            await _alertService.SendAsync(AlertType.TamperingDetected, ex.Message, ct);
+            await BroadcastSecurityAlertAsync(ex.Message, NotificationSeverity.Critical, ct);
+            throw;
+        }
     }
 
     private Task BroadcastSecurityAlertAsync(string message, NotificationSeverity severity, CancellationToken ct) =>

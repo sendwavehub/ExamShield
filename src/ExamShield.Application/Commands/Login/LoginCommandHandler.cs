@@ -20,16 +20,18 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
     private readonly ISecurityEventRepository _security;
     private readonly IAuditLogRepository _auditLog;
     private readonly LoginOptions _options;
+    private readonly IAlertService _alerts;
 
     public LoginCommandHandler(
         IUserRepository users, IPasswordHasher hasher,
         IJwtTokenService jwt, IRefreshTokenRepository refreshTokens,
         ISecurityEventRepository security, IAuditLogRepository auditLog,
-        LoginOptions? options = null)
+        LoginOptions? options = null, IAlertService? alertService = null)
     {
         _users = users; _hasher = hasher; _jwt = jwt;
         _refreshTokens = refreshTokens; _security = security; _auditLog = auditLog;
         _options = options ?? new LoginOptions();
+        _alerts = alertService ?? NullAlertService.Instance;
     }
 
     public async Task<LoginResult> Handle(LoginCommand command, CancellationToken ct)
@@ -43,6 +45,10 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
             {
                 user.RecordFailedLogin(MaxFailedAttempts, LockoutDuration);
                 await _users.SaveAsync(user, ct);
+
+                if (user.IsLockedOut)
+                    await _alerts.SendAsync(AlertType.SuspiciousLogin,
+                        $"Account locked after repeated failed logins: {command.Email}", ct);
             }
 
             await _security.AddAsync(SecurityEvent.Create(

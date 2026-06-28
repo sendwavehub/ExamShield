@@ -20,6 +20,7 @@ public sealed class TriggerOcrCommandHandlerTests
     private readonly IAuditLogRepository _auditLog = Substitute.For<IAuditLogRepository>();
     private readonly ISystemSettingsRepository _settings = Substitute.For<ISystemSettingsRepository>();
     private readonly ISecurityEventRepository _secEvents = Substitute.For<ISecurityEventRepository>();
+    private readonly IAlertService _alerts = Substitute.For<IAlertService>();
     private readonly TriggerOcrCommandHandler _sut;
 
     private static readonly byte[] ImageBytes = "exam-image"u8.ToArray();
@@ -33,7 +34,7 @@ public sealed class TriggerOcrCommandHandlerTests
         _settings.GetAsync(Arg.Any<CancellationToken>()).Returns(SystemSettings.CreateDefault());
 
         _sut = new TriggerOcrCommandHandler(
-            _captures, _imageStorage, _watermark, _ocrService, _ocrResults, _manualReviews, _auditLog, _settings, _secEvents);
+            _captures, _imageStorage, _watermark, _ocrService, _ocrResults, _manualReviews, _auditLog, _settings, _secEvents, _alerts);
     }
 
     private static Capture UploadedCapture()
@@ -184,7 +185,7 @@ public sealed class TriggerOcrCommandHandlerTests
         _imageStorage.RetrieveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(ImageBytes);
 
         await _sut.Invoking(s => s.Handle(new TriggerOcrCommand(capture.Id.Value), default))
-                  .Should().ThrowAsync<InvalidOperationException>();
+                  .Should().ThrowAsync<WatermarkTamperedException>();
 
         capture.Status.Should().Be(CaptureStatus.Tampered);
         await _ocrService.DidNotReceive().ExtractAsync(Arg.Any<byte[]>(), Arg.Any<CancellationToken>());

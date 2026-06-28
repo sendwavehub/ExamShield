@@ -18,13 +18,14 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
     private readonly IAuditLogRepository _auditLog;
     private readonly ISystemSettingsRepository _systemSettings;
     private readonly ISecurityEventRepository _securityEvents;
+    private readonly IAlertService _alerts;
 
     public TriggerOcrCommandHandler(
         ICaptureRepository captures, IImageStorage imageStorage,
         IWatermarkService watermark, IOcrService ocrService,
         IOcrResultRepository ocrResults, IManualReviewRepository manualReviews,
         IAuditLogRepository auditLog, ISystemSettingsRepository systemSettings,
-        ISecurityEventRepository securityEvents)
+        ISecurityEventRepository securityEvents, IAlertService alerts)
     {
         _captures = captures;
         _imageStorage = imageStorage;
@@ -35,6 +36,7 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
         _auditLog = auditLog;
         _systemSettings = systemSettings;
         _securityEvents = securityEvents;
+        _alerts = alerts;
     }
 
     public async Task<TriggerOcrResult> Handle(TriggerOcrCommand command, CancellationToken ct)
@@ -66,8 +68,9 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
                     captureId: capture.Id.Value), ct);
             await _auditLog.AppendAsync(
                 AuditLog.Record(AuditAction.TamperingDetected, captureId: capture.Id), ct);
-            throw new InvalidOperationException(
-                $"Capture {capture.Id.Value} watermark validation failed — tampering detected.");
+            await _alerts.SendAsync(AlertType.TamperingDetected,
+                $"Watermark tampered on capture {capture.Id.Value}", ct);
+            throw new WatermarkTamperedException(capture.Id.Value);
         }
 
         var imageBytes = storedBytes[..wm.OriginalImageLength];

@@ -78,6 +78,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INotificationChannelSettingsRepository, NotificationChannelSettingsRepository>();
         services.AddScoped<IAnswerKeyRepository, AnswerKeyRepository>();
         services.AddScoped<IExamCandidateRepository, ExamCandidateRepository>();
+        services.AddScoped<IDeviceCertificateRepository, DeviceCertificateRepository>();
         var wmOptions = configuration.GetSection(WatermarkOptions.Section).Get<WatermarkOptions>() ?? new WatermarkOptions();
         var hmacKey = string.IsNullOrEmpty(wmOptions.HmacKeyBase64)
             ? new byte[32]
