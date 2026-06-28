@@ -17,6 +17,7 @@ public sealed class UploadImageCommandHandler : IRequestHandler<UploadImageComma
     private readonly IAuditLogRepository _auditLog;
     private readonly IWatermarkService _watermarkService;
     private readonly ISecurityEventRepository _securityEvents;
+    private readonly IImageEncryptionService _encryption;
 
     public UploadImageCommandHandler(
         ICaptureRepository repository,
@@ -24,7 +25,8 @@ public sealed class UploadImageCommandHandler : IRequestHandler<UploadImageComma
         IImageStorage imageStorage,
         IAuditLogRepository auditLog,
         IWatermarkService watermarkService,
-        ISecurityEventRepository securityEvents)
+        ISecurityEventRepository securityEvents,
+        IImageEncryptionService encryption)
     {
         _repository = repository;
         _hashService = hashService;
@@ -32,6 +34,7 @@ public sealed class UploadImageCommandHandler : IRequestHandler<UploadImageComma
         _auditLog = auditLog;
         _watermarkService = watermarkService;
         _securityEvents = securityEvents;
+        _encryption = encryption;
     }
 
     public async Task<UploadImageResult> Handle(UploadImageCommand command, CancellationToken ct)
@@ -74,9 +77,10 @@ public sealed class UploadImageCommandHandler : IRequestHandler<UploadImageComma
         };
         var watermarkedBytes = _watermarkService.Embed(command.ImageBytes, payload);
 
-        var storageKey = await _imageStorage.StoreAsync(command.CaptureId, watermarkedBytes, ct);
+        var (ciphertext, encryptedDek) = _encryption.Encrypt(watermarkedBytes);
+        var storageKey = await _imageStorage.StoreAsync(command.CaptureId, ciphertext, ct);
 
-        capture.RecordUpload(storageKey);
+        capture.RecordUpload(storageKey, encryptedDek);
 
         await _repository.UpdateAsync(capture, ct);
         await _auditLog.AppendAsync(

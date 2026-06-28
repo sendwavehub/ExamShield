@@ -24,7 +24,7 @@ public sealed class WatermarkTamperAlertTests
 
     private TriggerOcrCommandHandler MakeSut() =>
         new(_captures, _storage, _watermark, _ocr, _ocrResults, _reviews,
-            _auditLog, _settings, _security, _alerts);
+            _auditLog, _settings, _security, _alerts, Substitute.For<IImageEncryptionService>());
 
     [Fact]
     public async Task Handle_WhenWatermarkInvalid_SendsTamperingAlert()

@@ -180,6 +180,7 @@ public static class CaptureEndpoints
         ClaimsPrincipal user,
         ICaptureRepository captures,
         IImageStorage imageStorage,
+        IImageEncryptionService encryption,
         CancellationToken ct)
     {
         var capture = await captures.GetByIdAsync(new CaptureId(id), ct)
@@ -205,8 +206,11 @@ public static class CaptureEndpoints
         if (capture.StorageKey is null)
             return Results.NotFound("Image not yet uploaded.");
 
-        var bytes = await imageStorage.RetrieveAsync(capture.StorageKey, ct);
-        return Results.Bytes(bytes, "application/octet-stream");
+        var rawBytes = await imageStorage.RetrieveAsync(capture.StorageKey, ct);
+        var imageBytes = capture.EncryptedDek is not null
+            ? encryption.Decrypt(rawBytes, capture.EncryptedDek)
+            : rawBytes;
+        return Results.Bytes(imageBytes, "application/octet-stream");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

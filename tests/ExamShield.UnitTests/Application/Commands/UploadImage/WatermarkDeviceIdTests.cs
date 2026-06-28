@@ -18,8 +18,12 @@ public sealed class WatermarkDeviceIdTests
 
     private static readonly byte[] FakeImage = [0xFF, 0xD8, 0xFF, 0xE0, 0x01, 0x02];
 
-    private UploadImageCommandHandler MakeSut() =>
-        new(_captures, new HashVerificationService(), _storage, _auditLog, _watermark, _security);
+    private UploadImageCommandHandler MakeSut()
+    {
+        var encryption = Substitute.For<IImageEncryptionService>();
+        encryption.Encrypt(Arg.Any<byte[]>()).Returns(c => (c.Arg<byte[]>(), Array.Empty<byte>()));
+        return new(_captures, new HashVerificationService(), _storage, _auditLog, _watermark, _security, encryption);
+    }
 
     [Fact]
     public async Task Handle_WatermarkPayloadContainsDeviceId()

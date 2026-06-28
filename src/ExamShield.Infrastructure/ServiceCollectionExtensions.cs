@@ -113,6 +113,7 @@ public static class ServiceCollectionExtensions
                 new InMemoryMessagePublisher(sp.GetRequiredService<ISender>()));
         }
 
+        services.AddSingleton<IImageEncryptionService, AesGcmImageEncryptionService>();
         services.AddSingleton<ITotpService, TotpService>();
         services.AddSingleton<ITotpUsedCodeCache, InMemoryTotpUsedCodeCache>();
         services.AddSingleton<IPasswordResetTokenRepository, InMemoryPasswordResetTokenRepository>();

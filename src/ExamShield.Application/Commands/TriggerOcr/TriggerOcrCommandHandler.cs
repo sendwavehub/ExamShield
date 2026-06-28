@@ -19,13 +19,15 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
     private readonly ISystemSettingsRepository _systemSettings;
     private readonly ISecurityEventRepository _securityEvents;
     private readonly IAlertService _alerts;
+    private readonly IImageEncryptionService _encryption;
 
     public TriggerOcrCommandHandler(
         ICaptureRepository captures, IImageStorage imageStorage,
         IWatermarkService watermark, IOcrService ocrService,
         IOcrResultRepository ocrResults, IManualReviewRepository manualReviews,
         IAuditLogRepository auditLog, ISystemSettingsRepository systemSettings,
-        ISecurityEventRepository securityEvents, IAlertService alerts)
+        ISecurityEventRepository securityEvents, IAlertService alerts,
+        IImageEncryptionService encryption)
     {
         _captures = captures;
         _imageStorage = imageStorage;
@@ -37,6 +39,7 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
         _systemSettings = systemSettings;
         _securityEvents = securityEvents;
         _alerts = alerts;
+        _encryption = encryption;
     }
 
     public async Task<TriggerOcrResult> Handle(TriggerOcrCommand command, CancellationToken ct)
@@ -54,9 +57,12 @@ public sealed class TriggerOcrCommandHandler : IRequestHandler<TriggerOcrCommand
         if (existingResult is not null)
             throw new DuplicateOcrException(command.CaptureId);
 
-        var settings    = await _systemSettings.GetAsync(ct);
-        var storedBytes = await _imageStorage.RetrieveAsync(capture.StorageKey, ct);
-        var wm          = _watermark.Extract(storedBytes);
+        var settings  = await _systemSettings.GetAsync(ct);
+        var rawBytes  = await _imageStorage.RetrieveAsync(capture.StorageKey, ct);
+        var storedBytes = capture.EncryptedDek is not null
+            ? _encryption.Decrypt(rawBytes, capture.EncryptedDek)
+            : rawBytes;
+        var wm = _watermark.Extract(storedBytes);
 
         if (!wm.IsValid)
         {

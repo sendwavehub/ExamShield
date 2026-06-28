@@ -19,12 +19,14 @@ public sealed class ServerVerifyCaptureQueryHandler
     private readonly IAuditLogRepository _auditLog;
     private readonly IAlertService _alertService;
     private readonly IWatermarkService _watermarkService;
+    private readonly IImageEncryptionService _encryption;
 
     public ServerVerifyCaptureQueryHandler(
         ICaptureRepository captures, IImageStorage imageStorage,
         HashVerificationService hashService, IDeviceRepository devices,
         ISignatureVerificationService sigService, IAuditLogRepository auditLog,
-        IAlertService alertService, IWatermarkService watermarkService)
+        IAlertService alertService, IWatermarkService watermarkService,
+        IImageEncryptionService encryption)
     {
         _captures = captures;
         _imageStorage = imageStorage;
@@ -34,6 +36,7 @@ public sealed class ServerVerifyCaptureQueryHandler
         _auditLog = auditLog;
         _alertService = alertService;
         _watermarkService = watermarkService;
+        _encryption = encryption;
     }
 
     public async Task<ServerVerifyResult> Handle(
@@ -45,7 +48,10 @@ public sealed class ServerVerifyCaptureQueryHandler
         if (capture.StorageKey is null)
             throw new CaptureNotUploadedException(query.CaptureId);
 
-        var storedBytes = await _imageStorage.RetrieveAsync(capture.StorageKey, ct);
+        var rawBytes = await _imageStorage.RetrieveAsync(capture.StorageKey, ct);
+        var storedBytes = capture.EncryptedDek is not null
+            ? _encryption.Decrypt(rawBytes, capture.EncryptedDek)
+            : rawBytes;
 
         bool hashValid;
         var extraction = _watermarkService.Extract(storedBytes);

@@ -20,13 +20,14 @@ public sealed class TriggerOcrTamperedCaptureTests
     private readonly ISystemSettingsRepository _settings = Substitute.For<ISystemSettingsRepository>();
     private readonly ISecurityEventRepository _secEvents = Substitute.For<ISecurityEventRepository>();
     private readonly IAlertService _alerts = Substitute.For<IAlertService>();
+    private readonly IImageEncryptionService _encryption = Substitute.For<IImageEncryptionService>();
     private readonly TriggerOcrCommandHandler _sut;
 
     public TriggerOcrTamperedCaptureTests()
     {
         _settings.GetAsync(default).Returns(SystemSettings.CreateDefault());
         _sut = new TriggerOcrCommandHandler(
-            _captures, _storage, _watermark, _ocr, _ocrResults, _reviews, _auditLog, _settings, _secEvents, _alerts);
+            _captures, _storage, _watermark, _ocr, _ocrResults, _reviews, _auditLog, _settings, _secEvents, _alerts, _encryption);
     }
 
     private static Capture MakeTamperedCapture()

@@ -40,6 +40,8 @@ internal sealed class CaptureConfiguration : IEntityTypeConfiguration<Capture>
 
         builder.Property(c => c.StorageKey).HasMaxLength(500).IsRequired(false);
 
+        builder.Property(c => c.EncryptedDek).IsRequired(false);
+
         builder.Property(c => c.InvigilatorId)
             .HasConversion(id => id!.Value, v => new UserId(v))
             .IsRequired(false);

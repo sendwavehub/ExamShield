@@ -20,6 +20,7 @@ public sealed class WatermarkTamperingDetectionTests
     private readonly ISystemSettingsRepository _settings     = Substitute.For<ISystemSettingsRepository>();
     private readonly ISecurityEventRepository _secEvents     = Substitute.For<ISecurityEventRepository>();
     private readonly IAlertService            _alerts        = Substitute.For<IAlertService>();
+    private readonly IImageEncryptionService  _encryption    = Substitute.For<IImageEncryptionService>();
     private readonly TriggerOcrCommandHandler _sut;
 
     public WatermarkTamperingDetectionTests()
@@ -28,7 +29,7 @@ public sealed class WatermarkTamperingDetectionTests
                  .Returns(SystemSettings.CreateDefault());
         _sut = new TriggerOcrCommandHandler(
             _captures, _imageStorage, _watermark, _ocrService,
-            _ocrResults, _manualReviews, _auditLog, _settings, _secEvents, _alerts);
+            _ocrResults, _manualReviews, _auditLog, _settings, _secEvents, _alerts, _encryption);
     }
 
     private static Capture MakeUploadedCapture()

@@ -21,6 +21,7 @@ public sealed class TriggerOcrCommandHandlerTests
     private readonly ISystemSettingsRepository _settings = Substitute.For<ISystemSettingsRepository>();
     private readonly ISecurityEventRepository _secEvents = Substitute.For<ISecurityEventRepository>();
     private readonly IAlertService _alerts = Substitute.For<IAlertService>();
+    private readonly IImageEncryptionService _encryption = Substitute.For<IImageEncryptionService>();
     private readonly TriggerOcrCommandHandler _sut;
 
     private static readonly byte[] ImageBytes = "exam-image"u8.ToArray();
@@ -34,7 +35,7 @@ public sealed class TriggerOcrCommandHandlerTests
         _settings.GetAsync(Arg.Any<CancellationToken>()).Returns(SystemSettings.CreateDefault());
 
         _sut = new TriggerOcrCommandHandler(
-            _captures, _imageStorage, _watermark, _ocrService, _ocrResults, _manualReviews, _auditLog, _settings, _secEvents, _alerts);
+            _captures, _imageStorage, _watermark, _ocrService, _ocrResults, _manualReviews, _auditLog, _settings, _secEvents, _alerts, _encryption);
     }
 
     private static Capture UploadedCapture()

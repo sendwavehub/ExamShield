@@ -22,7 +22,8 @@ public sealed class TriggerOcrConfidenceThresholdTests
     private readonly IAlertService             _alerts    = Substitute.For<IAlertService>();
 
     private TriggerOcrCommandHandler BuildSut() => new(
-        _captures, _storage, _watermark, _ocrService, _ocrResults, _reviews, _audit, _settings, _secEvents, _alerts);
+        _captures, _storage, _watermark, _ocrService, _ocrResults, _reviews, _audit, _settings, _secEvents, _alerts,
+        Substitute.For<IImageEncryptionService>());
 
     private void SetupCapture(out CaptureId captureId)
     {

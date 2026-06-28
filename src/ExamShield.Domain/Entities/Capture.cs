@@ -19,6 +19,7 @@ public sealed class Capture : AggregateRoot
     public CaptureStatus Status { get; private set; }
     public DateTimeOffset CapturedAt { get; private set; }
     public string? StorageKey { get; private set; }
+    public byte[]? EncryptedDek { get; private set; }
 
     private Capture() { } // required by EF Core
 
@@ -53,7 +54,7 @@ public sealed class Capture : AggregateRoot
         return capture;
     }
 
-    public void RecordUpload(string storageKey)
+    public void RecordUpload(string storageKey, byte[]? encryptedDek = null)
     {
         if (string.IsNullOrWhiteSpace(storageKey))
             throw new ArgumentException("Storage key cannot be empty.", nameof(storageKey));
@@ -62,6 +63,7 @@ public sealed class Capture : AggregateRoot
             throw new DuplicateUploadException(Id.Value);
 
         StorageKey = storageKey;
+        EncryptedDek = encryptedDek;
         Status = CaptureStatus.Uploaded;
         AddDomainEvent(new ImageUploaded(Id, storageKey));
     }

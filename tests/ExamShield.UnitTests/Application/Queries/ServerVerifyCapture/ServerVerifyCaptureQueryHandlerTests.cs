@@ -20,10 +20,11 @@ public sealed class ServerVerifyCaptureQueryHandlerTests
     private readonly IAuditLogRepository _auditLog = Substitute.For<IAuditLogRepository>();
     private readonly IAlertService _alertService = Substitute.For<IAlertService>();
     private readonly IWatermarkService _watermark = Substitute.For<IWatermarkService>();
+    private readonly IImageEncryptionService _encryption = Substitute.For<IImageEncryptionService>();
     private readonly ServerVerifyCaptureQueryHandler _sut;
 
     public ServerVerifyCaptureQueryHandlerTests() =>
-        _sut = new(_captures, _storage, _hashService, _devices, _sigService, _auditLog, _alertService, _watermark);
+        _sut = new(_captures, _storage, _hashService, _devices, _sigService, _auditLog, _alertService, _watermark, _encryption);
 
     private static Capture MakeUploadedCapture(byte[] imageBytes)
     {
