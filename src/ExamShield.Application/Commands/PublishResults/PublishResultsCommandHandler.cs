@@ -13,19 +13,30 @@ public sealed class PublishResultsCommandHandler
     private readonly IScoreRepository _scores;
     private readonly IAuditLogRepository _auditLog;
     private readonly ICacheService _cache;
+    private readonly IExamRepository _exams;
 
     public PublishResultsCommandHandler(
-        IScoreRepository scores, IAuditLogRepository auditLog, ICacheService cache)
+        IScoreRepository scores, IAuditLogRepository auditLog, ICacheService cache,
+        IExamRepository exams)
     {
         _scores = scores;
         _auditLog = auditLog;
         _cache = cache;
+        _exams = exams;
     }
 
     public async Task<PublishResultsResult> Handle(
         PublishResultsCommand command, CancellationToken ct)
     {
         var examId = new ExamId(command.ExamId);
+
+        var exam = await _exams.GetByIdAsync(examId, ct)
+            ?? throw new KeyNotFoundException($"Exam '{command.ExamId}' not found.");
+
+        if (exam.Status != ExamStatus.Closed)
+            throw new InvalidOperationException(
+                $"Results can only be published for a closed exam. Exam '{command.ExamId}' is currently {exam.Status}.");
+
         var all = await _scores.GetByExamIdAsync(examId, ct);
 
         if (all.Count == 0)

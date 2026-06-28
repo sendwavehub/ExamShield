@@ -47,6 +47,7 @@ public sealed class GetResultsByExamTests(TestWebApplicationFactory factory)
             await _client.PostAsJsonAsync("/upload", new UploadImageRequest(capture!.CaptureId, image));
             await _client.PostAsync($"/ocr/{capture.CaptureId}", null);
             await _client.PostAsJsonAsync("/score", new { captureId = capture.CaptureId });
+            await _client.PutAsync($"/exams/{exam.ExamId}/close", null);
             await _client.PostAsJsonAsync("/results/publish", new { examId = exam.ExamId });
             return exam.ExamId;
         }

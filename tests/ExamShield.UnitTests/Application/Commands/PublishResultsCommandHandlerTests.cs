@@ -12,13 +12,20 @@ namespace ExamShield.UnitTests.Application.Commands;
 
 public sealed class PublishResultsCommandHandlerTests
 {
-    private readonly IScoreRepository _scores = Substitute.For<IScoreRepository>();
+    private readonly IScoreRepository    _scores   = Substitute.For<IScoreRepository>();
     private readonly IAuditLogRepository _auditLog = Substitute.For<IAuditLogRepository>();
-    private readonly ICacheService _cache = Substitute.For<ICacheService>();
+    private readonly ICacheService       _cache    = Substitute.For<ICacheService>();
+    private readonly IExamRepository     _exams    = Substitute.For<IExamRepository>();
     private readonly PublishResultsCommandHandler _sut;
 
-    public PublishResultsCommandHandlerTests() =>
-        _sut = new PublishResultsCommandHandler(_scores, _auditLog, _cache);
+    public PublishResultsCommandHandlerTests()
+    {
+        var closedExam = Exam.Create("Test Exam", null, 10);
+        closedExam.Activate();
+        closedExam.Close();
+        _exams.GetByIdAsync(Arg.Any<ExamId>(), Arg.Any<CancellationToken>()).Returns(closedExam);
+        _sut = new PublishResultsCommandHandler(_scores, _auditLog, _cache, _exams);
+    }
 
     private static Score BuildScore(ExamId examId) =>
         Score.Create(CaptureId.New(), examId, StudentId.New(),

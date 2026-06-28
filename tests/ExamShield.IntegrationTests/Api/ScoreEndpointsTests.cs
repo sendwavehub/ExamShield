@@ -90,6 +90,7 @@ public sealed class ScoreEndpointsTests : IClassFixture<TestWebApplicationFactor
     public async Task PostPublish_AfterScoring_Returns200WithPublishedCount()
     {
         await _client.PostAsJsonAsync("/score", new ScoreCaptureRequest(_captureId));
+        await _client.PutAsync($"/exams/{_examId}/close", null);
 
         var response = await _client.PostAsJsonAsync("/results/publish",
             new PublishResultsRequest(_examId));
@@ -103,6 +104,7 @@ public sealed class ScoreEndpointsTests : IClassFixture<TestWebApplicationFactor
     public async Task GetResults_AfterScoringAndPublishing_IncludesScore()
     {
         await _client.PostAsJsonAsync("/score", new ScoreCaptureRequest(_captureId));
+        await _client.PutAsync($"/exams/{_examId}/close", null);
         await _client.PostAsJsonAsync("/results/publish", new PublishResultsRequest(_examId));
 
         var response = await _client.GetAsync("/results");

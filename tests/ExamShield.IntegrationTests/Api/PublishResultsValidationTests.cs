@@ -19,6 +19,7 @@ public sealed class PublishResultsValidationTests(TestWebApplicationFactory fact
             new CreateExamRequest("No-Score Exam", null, 1));
         var exam = await examRes.Content.ReadFromJsonAsync<ExamResponse>();
         await client.PutAsync($"/exams/{exam!.ExamId}/activate", null);
+        await client.PutAsync($"/exams/{exam.ExamId}/close", null);
 
         var res = await client.PostAsJsonAsync("/results/publish",
             new PublishRequest(exam.ExamId));
@@ -59,6 +60,7 @@ public sealed class PublishResultsValidationTests(TestWebApplicationFactory fact
         await client.PostAsJsonAsync("/upload", new UploadImageRequest(capture!.CaptureId, imageBytes));
         await client.PostAsync($"/ocr/{capture.CaptureId}", null);
         await client.PostAsJsonAsync("/score", new { captureId = capture.CaptureId });
+        await client.PutAsync($"/exams/{exam.ExamId}/close", null);
 
         await client.PostAsJsonAsync("/results/publish", new PublishRequest(exam.ExamId));
 
