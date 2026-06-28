@@ -83,4 +83,59 @@ public sealed class AuditLogTests
 
         entry.Reason.Should().BeNull();
     }
+
+    // ── SetChainHashes ────────────────────────────────────────────────────────
+
+    [Fact]
+    public void SetChainHashes_StoresPreviousHashAndContentHash()
+    {
+        var entry = AuditLog.Record(AuditAction.CaptureRegistered);
+
+        entry.SetChainHashes("prev-hash-hex", "content-hash-hex");
+
+        entry.PreviousHash.Should().Be("prev-hash-hex");
+        entry.ContentHash.Should().Be("content-hash-hex");
+    }
+
+    [Fact]
+    public void SetChainHashes_CanBeCalledWithEmptyStrings()
+    {
+        var entry = AuditLog.Record(AuditAction.CaptureRegistered);
+
+        var act = () => entry.SetChainHashes(string.Empty, string.Empty);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void SetChainHashes_SecondCallOverwritesPrevious()
+    {
+        var entry = AuditLog.Record(AuditAction.CaptureRegistered);
+        entry.SetChainHashes("first-prev", "first-content");
+
+        entry.SetChainHashes("second-prev", "second-content");
+
+        entry.PreviousHash.Should().Be("second-prev");
+        entry.ContentHash.Should().Be("second-content");
+    }
+
+    // ── SetServerSignature ────────────────────────────────────────────────────
+
+    [Fact]
+    public void SetServerSignature_StoresSignature()
+    {
+        var entry = AuditLog.Record(AuditAction.CaptureRegistered);
+
+        entry.SetServerSignature("sig-hex-value");
+
+        entry.ServerSignature.Should().Be("sig-hex-value");
+    }
+
+    [Fact]
+    public void SetServerSignature_DefaultsToEmpty()
+    {
+        var entry = AuditLog.Record(AuditAction.CaptureRegistered);
+
+        entry.ServerSignature.Should().Be(string.Empty);
+    }
 }

@@ -135,4 +135,87 @@ public sealed class CaptureTests
     {
         CreateValidCapture().Id.Should().NotBe(CreateValidCapture().Id);
     }
+
+    // ── RecordUpload ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void RecordUpload_ValidKey_SetsStorageKeyAndStatus()
+    {
+        var capture = CreateValidCapture();
+
+        capture.RecordUpload("s3://bucket/cap-1");
+
+        capture.StorageKey.Should().Be("s3://bucket/cap-1");
+        capture.Status.Should().Be(CaptureStatus.Uploaded);
+    }
+
+    [Fact]
+    public void RecordUpload_ValidKey_RaisesImageUploadedEvent()
+    {
+        var capture = CreateValidCapture();
+
+        capture.RecordUpload("s3://bucket/cap-1");
+
+        capture.DomainEvents.OfType<ImageUploaded>()
+            .Should().ContainSingle()
+            .Which.CaptureId.Should().Be(capture.Id);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void RecordUpload_EmptyKey_ThrowsArgumentException(string key)
+    {
+        var capture = CreateValidCapture();
+
+        var act = () => capture.RecordUpload(key);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void RecordUpload_WhenAlreadyUploaded_ThrowsDuplicateUploadException()
+    {
+        var capture = CreateValidCapture();
+        capture.RecordUpload("s3://bucket/cap-1");
+
+        var act = () => capture.RecordUpload("s3://bucket/cap-2");
+
+        act.Should().Throw<ExamShield.Domain.Exceptions.DuplicateUploadException>();
+    }
+
+    // ── FlagAsTampered ────────────────────────────────────────────────────────
+
+    [Fact]
+    public void FlagAsTampered_SetsStatusToTampered()
+    {
+        var capture = CreateValidCapture();
+
+        capture.FlagAsTampered("Manual review flagged mismatch");
+
+        capture.Status.Should().Be(CaptureStatus.Tampered);
+    }
+
+    [Fact]
+    public void FlagAsTampered_RaisesTamperingDetectedEvent()
+    {
+        var capture = CreateValidCapture();
+
+        capture.FlagAsTampered("Reason");
+
+        capture.DomainEvents.OfType<TamperingDetected>()
+            .Should().ContainSingle()
+            .Which.CaptureId.Should().Be(capture.Id);
+    }
+
+    [Fact]
+    public void FlagAsTampered_WhenAlreadyTampered_ThrowsCaptureAlreadyTamperedException()
+    {
+        var capture = CreateValidCapture();
+        capture.FlagAsTampered("First");
+
+        var act = () => capture.FlagAsTampered("Second");
+
+        act.Should().Throw<ExamShield.Domain.Exceptions.CaptureAlreadyTamperedException>();
+    }
 }

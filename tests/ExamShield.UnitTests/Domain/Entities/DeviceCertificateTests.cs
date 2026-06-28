@@ -64,4 +64,88 @@ public sealed class DeviceCertificateTests
 
         act.Should().Throw<ArgumentException>();
     }
+
+    [Theory]
+    [InlineData("   ")]
+    public void Issue_WhitespacePem_Throws(string pem)
+    {
+        var act = () => DeviceCertificate.Issue(DeviceId, pem, validDays: 365);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Issue_NullDeviceId_ThrowsArgumentNullException()
+    {
+        var act = () => DeviceCertificate.Issue(null!, SamplePem, validDays: 365);
+
+        act.Should().Throw<ArgumentNullException>().WithParameterName("deviceId");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Issue_ZeroOrNegativeValidDays_ThrowsArgumentOutOfRangeException(int days)
+    {
+        var act = () => DeviceCertificate.Issue(DeviceId, SamplePem, validDays: days);
+
+        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("validDays");
+    }
+
+    [Fact]
+    public void Issue_AssignsNonEmptyId()
+    {
+        var cert = DeviceCertificate.Issue(DeviceId, SamplePem, validDays: 30);
+
+        cert.Id.Should().NotBe(Guid.Empty);
+    }
+
+    [Fact]
+    public void Issue_TwoCertificates_HaveDifferentIds()
+    {
+        var a = DeviceCertificate.Issue(DeviceId, SamplePem, validDays: 30);
+        var b = DeviceCertificate.Issue(DeviceId, SamplePem, validDays: 30);
+
+        a.Id.Should().NotBe(b.Id);
+    }
+
+    [Fact]
+    public void Issue_TrimsPublicKeyPem()
+    {
+        var cert = DeviceCertificate.Issue(DeviceId, "  pem-data  ", validDays: 30);
+
+        cert.PublicKeyPem.Should().Be("pem-data");
+    }
+
+    [Fact]
+    public void Issue_UsesProvidedIssuedAt()
+    {
+        var fixedTime = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var cert = DeviceCertificate.Issue(DeviceId, SamplePem, validDays: 30, issuedAt: fixedTime);
+
+        cert.IssuedAt.Should().Be(fixedTime);
+        cert.ExpiresAt.Should().Be(fixedTime.AddDays(30));
+    }
+
+    [Fact]
+    public void Revoke_TrimsReason()
+    {
+        var cert = DeviceCertificate.Issue(DeviceId, SamplePem, validDays: 365);
+
+        cert.Revoke("  trimmed reason  ");
+
+        cert.RevocationReason.Should().Be("trimmed reason");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Revoke_EmptyReason_ThrowsArgumentException(string reason)
+    {
+        var cert = DeviceCertificate.Issue(DeviceId, SamplePem, validDays: 365);
+
+        var act = () => cert.Revoke(reason);
+
+        act.Should().Throw<ArgumentException>();
+    }
 }
