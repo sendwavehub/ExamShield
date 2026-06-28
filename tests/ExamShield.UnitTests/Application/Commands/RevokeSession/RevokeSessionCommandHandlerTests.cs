@@ -5,6 +5,7 @@ using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
 using FluentAssertions;
 using NSubstitute;
+using DomainRefreshToken = ExamShield.Domain.Entities.RefreshToken;
 
 namespace ExamShield.UnitTests.Application.Commands.RevokeSession;
 
@@ -20,7 +21,7 @@ public sealed class RevokeSessionCommandHandlerTests
     public async Task Handle_WithOwnToken_RevokesIt()
     {
         var userId = UserId.New();
-        var token = RefreshToken.Create(userId, "hash", 7);
+        var token = DomainRefreshToken.Create(userId, "hash", 7);
         _tokens.FindByIdAsync(token.Id, Arg.Any<CancellationToken>()).Returns(token);
 
         await _sut.Handle(new RevokeSessionCommand(userId.Value, token.Id), default);
@@ -34,7 +35,7 @@ public sealed class RevokeSessionCommandHandlerTests
     {
         var owner = UserId.New();
         var requester = UserId.New();
-        var token = RefreshToken.Create(owner, "hash", 7);
+        var token = DomainRefreshToken.Create(owner, "hash", 7);
         _tokens.FindByIdAsync(token.Id, Arg.Any<CancellationToken>()).Returns(token);
 
         var act = () => _sut.Handle(new RevokeSessionCommand(requester.Value, token.Id), default);
@@ -46,7 +47,7 @@ public sealed class RevokeSessionCommandHandlerTests
     public async Task Handle_WhenTokenNotFound_ThrowsKeyNotFound()
     {
         _tokens.FindByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-               .Returns((RefreshToken?)null);
+               .Returns((DomainRefreshToken?)null);
 
         var act = () => _sut.Handle(new RevokeSessionCommand(Guid.NewGuid(), Guid.NewGuid()), default);
 

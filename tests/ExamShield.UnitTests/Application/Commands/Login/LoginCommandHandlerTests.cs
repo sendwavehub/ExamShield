@@ -6,6 +6,7 @@ using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
 using FluentAssertions;
 using NSubstitute;
+using DomainRefreshToken = ExamShield.Domain.Entities.RefreshToken;
 
 namespace ExamShield.UnitTests.Application.Commands.Login;
 
@@ -102,7 +103,7 @@ public sealed class LoginCommandHandlerTests
 
         await _sut.Handle(new LoginCommand("op@examshield.io", "secret"), default);
 
-        await _refreshTokens.DidNotReceive().AddAsync(Arg.Any<RefreshToken>(), Arg.Any<CancellationToken>());
+        await _refreshTokens.DidNotReceive().AddAsync(Arg.Any<DomainRefreshToken>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

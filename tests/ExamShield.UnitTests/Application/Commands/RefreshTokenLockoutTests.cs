@@ -6,6 +6,7 @@ using ExamShield.Domain.Exceptions;
 using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
 using NSubstitute;
+using DomainRefreshToken = ExamShield.Domain.Entities.RefreshToken;
 
 namespace ExamShield.UnitTests.Application.Commands;
 
@@ -21,12 +22,12 @@ public sealed class RefreshTokenLockoutTests
     public RefreshTokenLockoutTests() =>
         _sut = new RefreshTokenCommandHandler(_tokens, _users, _jwt, _security, _auditLog);
 
-    private static RefreshToken ActiveToken(UserId userId)
+    private static DomainRefreshToken ActiveToken(UserId userId)
     {
         var hash = Convert.ToBase64String(
             System.Security.Cryptography.SHA256.HashData(
                 System.Text.Encoding.UTF8.GetBytes("raw-token")));
-        return RefreshToken.Create(userId, hash, expiryDays: 7);
+        return DomainRefreshToken.Create(userId, hash, expiryDays: 7);
     }
 
     [Fact]

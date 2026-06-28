@@ -3,6 +3,7 @@ using ExamShield.Domain.Entities;
 using ExamShield.Domain.Enums;
 using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
+using DomainRefreshToken = ExamShield.Domain.Entities.RefreshToken;
 using FluentAssertions;
 using NSubstitute;
 
@@ -20,7 +21,7 @@ public sealed class LogoutAuditTests
     [Fact]
     public async Task Handle_ActiveRefreshToken_AppendsUserLoggedOutAuditEntry()
     {
-        var token = RefreshToken.Create(UserId.New(), "hash", expiryDays: 7);
+        var token = DomainRefreshToken.Create(UserId.New(), "hash", expiryDays: 7);
         _refreshTokens.FindByHashAsync(Arg.Any<string>(), default).Returns(token);
 
         await _sut.Handle(new LogoutCommand("raw-token"), default);
@@ -32,7 +33,7 @@ public sealed class LogoutAuditTests
     [Fact]
     public async Task Handle_NoMatchingToken_DoesNotAppendAuditEntry()
     {
-        _refreshTokens.FindByHashAsync(Arg.Any<string>(), default).Returns((RefreshToken?)null);
+        _refreshTokens.FindByHashAsync(Arg.Any<string>(), default).Returns((DomainRefreshToken?)null);
 
         await _sut.Handle(new LogoutCommand("raw-token"), default);
 
