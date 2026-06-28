@@ -28,6 +28,7 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        Provider<ApiClient>.value(value: api),
         ChangeNotifierProvider(create: (_) => AuthNotifier(authService)),
         Provider<CaptureService>.value(value: captureService),
         Provider<DeviceRegistrationService>.value(value: deviceRegService),

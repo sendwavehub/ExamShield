@@ -5,6 +5,7 @@ import '../../domain/services/sync_service.dart';
 import 'capture_screen.dart';
 import 'history_screen.dart';
 import 'notifications_screen.dart';
+import 'profile_screen.dart';
 import 'sync_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _MainScreenState extends State<MainScreen> {
     HistoryScreen(),
     SyncScreen(),
     NotificationsScreen(),
+    ProfileScreen(),
   ];
 
   @override
@@ -67,6 +69,10 @@ class _MainScreenState extends State<MainScreen> {
           const BottomNavigationBarItem(
             icon: Icon(Icons.notifications_outlined),
             label: 'Notifications',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
           ),
         ],
       ),

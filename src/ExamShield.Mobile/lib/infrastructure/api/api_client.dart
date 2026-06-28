@@ -19,6 +19,24 @@ class MfaSetupInfo {
   const MfaSetupInfo({required this.secret, required this.qrUri});
 }
 
+class UserProfile {
+  final String email;
+  final String role;
+  final bool mfaEnabled;
+
+  const UserProfile({
+    required this.email,
+    required this.role,
+    required this.mfaEnabled,
+  });
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
+        email: json['email'] as String? ?? '',
+        role: json['role'] as String? ?? '',
+        mfaEnabled: json['mfaEnabled'] as bool? ?? false,
+      );
+}
+
 class ApiClient {
   final String baseUrl;
   final http.Client _http;
@@ -114,6 +132,25 @@ class ApiClient {
     final streamed = await req.send();
     if (streamed.statusCode >= 400) {
       throw ApiException(statusCode: streamed.statusCode, message: 'Upload failed');
+    }
+  }
+
+  Future<UserProfile> getProfile(String token) async {
+    final res = await _http.get(
+      Uri.parse('$baseUrl/auth/profile'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    _assertOk(res);
+    return UserProfile.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  Future<void> logoutApi(String token) async {
+    final res = await _http.post(
+      Uri.parse('$baseUrl/auth/logout'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (res.statusCode >= 400 && res.statusCode != 401) {
+      _assertOk(res); // ignore 401 — token may already be expired
     }
   }
 
