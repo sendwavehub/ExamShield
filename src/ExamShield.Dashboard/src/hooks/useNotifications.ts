@@ -19,20 +19,27 @@ export function useNotifications(maxHistory = 50) {
     const token = localStorage.getItem('auth_token')
     if (!token) return
 
+    let active = true
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL, { accessTokenFactory: () => token })
       .withAutomaticReconnect()
-      .configureLogging(signalR.LogLevel.Warning)
+      .configureLogging(signalR.LogLevel.None)
       .build()
 
     connection.on('Notification', (notification: RealtimeNotification) => {
-      setNotifications(prev => [notification, ...prev].slice(0, maxHistory))
+      if (active) setNotifications(prev => [notification, ...prev].slice(0, maxHistory))
     })
 
-    connection.start().catch(() => { /* silent — hub may be unavailable in dev */ })
+    // If StrictMode cleanup fires before start() resolves, stop immediately on connect.
+    connection.start()
+      .then(() => { if (!active) connection.stop() })
+      .catch(() => {})
     connectionRef.current = connection
 
-    return () => { connection.stop() }
+    return () => {
+      active = false
+      connection.stop().catch(() => {})
+    }
   }, [maxHistory])
 
   const dismiss = (index: number) =>
