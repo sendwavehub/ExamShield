@@ -1,10 +1,14 @@
 using System.Security.Cryptography;
+using ExamShield.Domain.Entities;
+using ExamShield.Domain.Enums;
 using ExamShield.Domain.Interfaces;
 using MediatR;
 
 namespace ExamShield.Application.Commands.Logout;
 
-public sealed class LogoutCommandHandler(IRefreshTokenRepository refreshTokens)
+public sealed class LogoutCommandHandler(
+    IRefreshTokenRepository refreshTokens,
+    IAuditLogRepository auditLog)
     : IRequestHandler<LogoutCommand>
 {
     public async Task Handle(LogoutCommand cmd, CancellationToken ct)
@@ -15,6 +19,7 @@ public sealed class LogoutCommandHandler(IRefreshTokenRepository refreshTokens)
         {
             stored.Revoke();
             await refreshTokens.SaveAsync(stored, ct);
+            await auditLog.AppendAsync(AuditLog.Record(AuditAction.UserLoggedOut), ct);
         }
     }
 

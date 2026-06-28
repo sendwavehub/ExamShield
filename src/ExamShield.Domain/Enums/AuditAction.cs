@@ -32,5 +32,7 @@ public enum AuditAction
     PasswordReset,
     DeviceApproved,
     DeviceBlacklisted,
-    ReviewEscalated
+    ReviewEscalated,
+    UserLoggedIn,
+    UserLoggedOut
 }

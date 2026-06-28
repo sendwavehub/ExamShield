@@ -15,11 +15,12 @@ public sealed class LoginCommandHandlerTests
     private readonly IPasswordHasher _hasher = Substitute.For<IPasswordHasher>();
     private readonly IJwtTokenService _jwt = Substitute.For<IJwtTokenService>();
     private readonly IRefreshTokenRepository _refreshTokens = Substitute.For<IRefreshTokenRepository>();
-    private readonly ISecurityEventRepository _security = Substitute.For<ISecurityEventRepository>();
+    private readonly ISecurityEventRepository _security  = Substitute.For<ISecurityEventRepository>();
+    private readonly IAuditLogRepository      _auditLog  = Substitute.For<IAuditLogRepository>();
     private readonly LoginCommandHandler _sut;
 
     public LoginCommandHandlerTests() =>
-        _sut = new LoginCommandHandler(_users, _hasher, _jwt, _refreshTokens, _security);
+        _sut = new LoginCommandHandler(_users, _hasher, _jwt, _refreshTokens, _security, _auditLog);
 
     private static User MakeUser() =>
         User.Create(new Email("op@examshield.io"), "$2a$04$hash", UserRole.Operator);

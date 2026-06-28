@@ -18,14 +18,15 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
     private readonly IJwtTokenService _jwt;
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly ISecurityEventRepository _security;
+    private readonly IAuditLogRepository _auditLog;
 
     public LoginCommandHandler(
         IUserRepository users, IPasswordHasher hasher,
         IJwtTokenService jwt, IRefreshTokenRepository refreshTokens,
-        ISecurityEventRepository security)
+        ISecurityEventRepository security, IAuditLogRepository auditLog)
     {
         _users = users; _hasher = hasher; _jwt = jwt;
-        _refreshTokens = refreshTokens; _security = security;
+        _refreshTokens = refreshTokens; _security = security; _auditLog = auditLog;
     }
 
     public async Task<LoginResult> Handle(LoginCommand command, CancellationToken ct)
@@ -64,6 +65,8 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
             $"Successful login for {command.Email}",
             userId: user.Id.Value.ToString(),
             ipAddress: command.IpAddress), ct);
+
+        await _auditLog.AppendAsync(AuditLog.Record(AuditAction.UserLoggedIn), ct);
 
         return new LoginResult(_jwt.Generate(user), rawToken, user.Role.ToString());
     }
