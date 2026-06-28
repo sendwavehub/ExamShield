@@ -25,7 +25,9 @@ public sealed class RankingTieBreakTests
             .Select(q => new ExtractedAnswer(q, "A", new OcrConfidence(1.0)))
             .ToList<ExtractedAnswer>();
         var key = new AnswerKey(Enumerable.Range(1, Total).ToDictionary(q => q, _ => "A"));
-        return Score.Create(captureId, ExamId, studentId, answers, key, scoredAt);
+        var score = Score.Create(captureId, ExamId, studentId, answers, key, scoredAt);
+        score.Publish();
+        return score;
     }
 
     [Fact]

@@ -11,13 +11,15 @@ namespace ExamShield.UnitTests.Application.Commands;
 
 public sealed class RefreshTokenLockoutTests
 {
-    private readonly IRefreshTokenRepository _tokens = Substitute.For<IRefreshTokenRepository>();
-    private readonly IUserRepository _users = Substitute.For<IUserRepository>();
-    private readonly IJwtTokenService _jwt = Substitute.For<IJwtTokenService>();
+    private readonly IRefreshTokenRepository  _tokens   = Substitute.For<IRefreshTokenRepository>();
+    private readonly IUserRepository          _users    = Substitute.For<IUserRepository>();
+    private readonly IJwtTokenService         _jwt      = Substitute.For<IJwtTokenService>();
+    private readonly ISecurityEventRepository _security = Substitute.For<ISecurityEventRepository>();
+    private readonly IAuditLogRepository      _auditLog = Substitute.For<IAuditLogRepository>();
     private readonly RefreshTokenCommandHandler _sut;
 
     public RefreshTokenLockoutTests() =>
-        _sut = new RefreshTokenCommandHandler(_tokens, _users, _jwt);
+        _sut = new RefreshTokenCommandHandler(_tokens, _users, _jwt, _security, _auditLog);
 
     private static RefreshToken ActiveToken(UserId userId)
     {

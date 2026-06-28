@@ -109,7 +109,7 @@ public sealed class ScoreUsesReviewedAnswersTests
     }
 
     [Fact]
-    public async Task Handle_WhenReviewIsPending_UsesOcrAnswers()
+    public async Task Handle_WhenReviewIsPending_ThrowsManualReviewRequiredException()
     {
         var capture   = MakeCapture();
         var ocrResult = MakeOcrResult(capture.Id);
@@ -117,12 +117,9 @@ public sealed class ScoreUsesReviewedAnswersTests
 
         _ocrResults.GetByCaptureIdAsync(capture.Id, Arg.Any<CancellationToken>()).Returns(ocrResult);
         _reviews.GetByCaptureIdAsync(capture.Id, Arg.Any<CancellationToken>()).Returns(pendingReview);
-        _answerKeys.GetByExamIdAsync(ExamId, Arg.Any<CancellationToken>())
-                   .Returns(new AnswerKey(new Dictionary<int, string> { [1] = "A" }));
 
-        var result = await _sut.Handle(new ScoreCaptureCommand(capture.Id.Value), default);
-
-        // OCR said "A", answer key says "A" → 1 correct (OCR used, review was pending)
-        result.CorrectAnswers.Should().Be(1);
+        // Low-confidence OCR with only a pending review must not proceed to scoring
+        await Assert.ThrowsAsync<ManualReviewRequiredException>(() =>
+            _sut.Handle(new ScoreCaptureCommand(capture.Id.Value), default));
     }
 }

@@ -47,6 +47,11 @@ public sealed class ScoreCaptureCommandHandler : IRequestHandler<ScoreCaptureCom
             ?? throw new OcrResultNotFoundException(command.CaptureId);
 
         var review    = await _reviews.GetByCaptureIdAsync(capture.Id, ct);
+
+        if (ocrResult.RequiresManualReview &&
+            review is not { Status: ManualReviewStatus.Completed or ManualReviewStatus.Approved })
+            throw new ManualReviewRequiredException(command.CaptureId);
+
         var answers   = review is { Status: ManualReviewStatus.Completed or ManualReviewStatus.Approved }
             ? review.ReviewedAnswers
                 .Select(a => new ExtractedAnswer(a.QuestionNumber, a.Text, new OcrConfidence(1.0)))

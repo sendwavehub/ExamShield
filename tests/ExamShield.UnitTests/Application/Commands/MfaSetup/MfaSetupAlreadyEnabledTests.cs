@@ -11,11 +11,12 @@ namespace ExamShield.UnitTests.Application.Commands.MfaSetup;
 public sealed class MfaSetupAlreadyEnabledTests
 {
     private readonly IUserRepository _users = Substitute.For<IUserRepository>();
-    private readonly ITotpService    _totp  = Substitute.For<ITotpService>();
+    private readonly ITotpService        _totp     = Substitute.For<ITotpService>();
+    private readonly IAuditLogRepository _auditLog = Substitute.For<IAuditLogRepository>();
     private readonly MfaSetupCommandHandler _sut;
 
     public MfaSetupAlreadyEnabledTests() =>
-        _sut = new MfaSetupCommandHandler(_users, _totp);
+        _sut = new MfaSetupCommandHandler(_users, _totp, _auditLog);
 
     private static User MfaEnabledUser()
     {

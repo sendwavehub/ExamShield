@@ -11,4 +11,5 @@ public enum SecurityEventType
     LoginSuccess,
     LoginFailed,
     WatermarkTampered,
+    TokenTheftDetected,
 }

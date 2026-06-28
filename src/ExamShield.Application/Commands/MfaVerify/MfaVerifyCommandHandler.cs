@@ -1,11 +1,14 @@
 using ExamShield.Application.Interfaces;
+using ExamShield.Domain.Entities;
+using ExamShield.Domain.Enums;
 using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
 using MediatR;
 
 namespace ExamShield.Application.Commands.MfaVerify;
 
-public sealed class MfaVerifyCommandHandler(IUserRepository users, ITotpService totp)
+public sealed class MfaVerifyCommandHandler(
+    IUserRepository users, ITotpService totp, IAuditLogRepository auditLog)
     : IRequestHandler<MfaVerifyCommand, MfaVerifyResult>
 {
     public async Task<MfaVerifyResult> Handle(MfaVerifyCommand cmd, CancellationToken ct)
@@ -21,6 +24,7 @@ public sealed class MfaVerifyCommandHandler(IUserRepository users, ITotpService 
 
         user.EnableMfa();
         await users.SaveAsync(user, ct);
+        await auditLog.AppendAsync(AuditLog.Record(AuditAction.MfaEnabled), ct);
         return new MfaVerifyResult(true);
     }
 }

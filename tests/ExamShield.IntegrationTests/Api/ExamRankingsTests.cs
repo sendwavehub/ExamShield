@@ -56,6 +56,12 @@ public sealed class ExamRankingsTests : IClassFixture<TestWebApplicationFactory>
         (await _client.PostAsJsonAsync("/score", new ScoreCaptureRequest(capture.CaptureId))).EnsureSuccessStatusCode();
     }
 
+    private async Task CloseAndPublishAsync()
+    {
+        await _client.PutAsync($"/exams/{_examId}/close", null);
+        await _client.PostAsJsonAsync("/results/publish", new { ExamId = _examId });
+    }
+
     [Fact]
     public async Task GetRankings_EmptyExam_ReturnsEmptyList()
     {
@@ -74,6 +80,7 @@ public sealed class ExamRankingsTests : IClassFixture<TestWebApplicationFactory>
         var studentB = Guid.NewGuid();
         await RegisterScoreForStudentAsync(studentA);
         await RegisterScoreForStudentAsync(studentB);
+        await CloseAndPublishAsync();
 
         var res  = await _client.GetAsync($"/score/rankings/{_examId}");
         var body = await res.Content.ReadFromJsonAsync<ExamRankingsResponse>();
@@ -89,6 +96,7 @@ public sealed class ExamRankingsTests : IClassFixture<TestWebApplicationFactory>
     {
         var studentId = Guid.NewGuid();
         await RegisterScoreForStudentAsync(studentId);
+        await CloseAndPublishAsync();
 
         var res  = await _client.GetAsync($"/score/rankings/{_examId}");
         var body = await res.Content.ReadFromJsonAsync<ExamRankingsResponse>();

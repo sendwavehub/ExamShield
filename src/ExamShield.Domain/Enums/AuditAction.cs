@@ -28,11 +28,14 @@ public enum AuditAction
     ReviewApproved,
     ReviewRejected,
     SettingsUpdated,
+    MfaSecretSet,
+    MfaEnabled,
     MfaDisabled,
     PasswordReset,
     DeviceApproved,
     DeviceBlacklisted,
     ReviewEscalated,
     UserLoggedIn,
-    UserLoggedOut
+    UserLoggedOut,
+    TokenRefreshed
 }

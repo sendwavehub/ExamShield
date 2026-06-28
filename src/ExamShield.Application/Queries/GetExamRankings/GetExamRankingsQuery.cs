@@ -19,6 +19,7 @@ public sealed class GetExamRankingsQueryHandler(IScoreRepository scores)
         var all = await scores.GetByExamIdAsync(new ExamId(request.ExamId), ct);
 
         var ordered = all
+            .Where(s => s.IsPublished)
             .OrderByDescending(s => s.Percentage)
             .ThenByDescending(s => s.CorrectAnswers)
             .ThenBy(s => s.ScoredAt)

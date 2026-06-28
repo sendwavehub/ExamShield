@@ -18,8 +18,10 @@ public sealed class GetExamRankingsQueryHandlerTests
         var answers = Enumerable.Range(1, correct)
                          .Select(i => new ExtractedAnswer(i, "A", new OcrConfidence(1.0)))
                          .ToList();
-        return Score.Create(CaptureId.New(), examId, studentId,
+        var score = Score.Create(CaptureId.New(), examId, studentId,
             answers, new AnswerKey(key));
+        score.Publish();
+        return score;
     }
 
     [Fact]
