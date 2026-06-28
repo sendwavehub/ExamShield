@@ -46,6 +46,7 @@ builder.Services.AddSingleton(new LoginOptions
         builder.Configuration.GetValue("Features:EnforceMfaForPrivilegedRoles", defaultValue: false)
 });
 builder.Services.AddSingleton<HashVerificationService>();
+builder.Services.AddHostedService<DataSeeder>();
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(RegisterCaptureCommand).Assembly);
