@@ -43,10 +43,19 @@ public static class StudentEndpoints
         .ProducesProblem(StatusCodes.Status400BadRequest);
 
         app.MapPost("/student/review-request",
-            async (SubmitReviewRequestBody body, ISender sender, CancellationToken ct) =>
+            async (SubmitReviewRequestBody body, ISender sender, ClaimsPrincipal user, CancellationToken ct) =>
             {
                 if (string.IsNullOrWhiteSpace(body.Reason))
                     return Results.BadRequest(new { title = "Reason cannot be empty.", status = 400 });
+
+                // Students may only submit requests under their own identity.
+                if (user.IsInRole("Student") && !user.IsInRole("Operator"))
+                {
+                    var sub = user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                           ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (!Guid.TryParse(sub, out var callerId) || callerId != body.StudentId)
+                        return Results.Forbid();
+                }
 
                 var result = await sender.Send(
                     new SubmitReviewRequestCommand(body.CaptureId, body.StudentId, body.Reason), ct);

@@ -27,4 +27,26 @@ public static class TestHelpers
         var capture = await capRes.Content.ReadFromJsonAsync<RegisterCaptureResponse>();
         return (capture!.CaptureId, studentId);
     }
+
+    /// <summary>
+    /// Registers a capture for a specific, already-enrolled student ID.
+    /// </summary>
+    public static async Task<(Guid CaptureId, Guid StudentId)> RegisterCaptureForStudentAsync(
+        HttpClient client, Guid examId, Guid studentId)
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var devRes = await client.PostAsJsonAsync("/devices",
+            new RegisterDeviceRequest("Helper Device", ecdsa.ExportSubjectPublicKeyInfo()));
+        var device = await devRes.Content.ReadFromJsonAsync<RegisterDeviceResponse>();
+        await client.PutAsync($"/devices/{device!.DeviceId}/approve", null);
+
+        var hashHex = new string('b', 64);
+        var capRes = await client.PostAsJsonAsync("/capture",
+            new RegisterCaptureRequest(
+                examId, studentId, device!.DeviceId, 1, hashHex,
+                ecdsa.SignHash(Convert.FromHexString(hashHex))));
+
+        var capture = await capRes.Content.ReadFromJsonAsync<RegisterCaptureResponse>();
+        return (capture!.CaptureId, studentId);
+    }
 }
