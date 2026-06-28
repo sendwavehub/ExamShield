@@ -25,7 +25,6 @@ import RankingsPage from './pages/RankingsPage'
 import SessionManagementPage from './pages/SessionManagementPage'
 import ReviewRequestsPage from './pages/ReviewRequestsPage'
 import AppLayout from './components/layout/AppLayout'
-import { useDashboardStats } from './hooks/useDashboardStats'
 import { useNotifications } from './hooks/useNotifications'
 import NotificationToast from './components/ui/NotificationToast'
 import './index.css'
@@ -33,18 +32,7 @@ import './index.css'
 const queryClient = new QueryClient()
 
 function LiveDashboard() {
-  const { data, isLoading } = useDashboardStats()
-  if (isLoading || !data) return <p className="text-sm text-muted-foreground">Loading…</p>
-  return (
-    <DashboardPage
-      stats={{
-        totalCaptures: data.totalCaptures,
-        pendingReview: data.pendingReview,
-        verifiedToday: data.verifiedToday,
-        alertCount: data.activeAlerts,
-      }}
-    />
-  )
+  return <DashboardPage />
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {

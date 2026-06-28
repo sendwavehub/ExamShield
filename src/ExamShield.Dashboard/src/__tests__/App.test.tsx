@@ -6,9 +6,6 @@ vi.mock('../hooks/useAuth', () => ({
   useAuth: vi.fn(),
 }))
 
-vi.mock('../hooks/useDashboardStats', () => ({
-  useDashboardStats: vi.fn(() => ({ data: null, isLoading: true })),
-}))
 
 vi.mock('../hooks/useNotifications', () => ({
   useNotifications: vi.fn(() => ({ notifications: [], dismiss: vi.fn() })),
@@ -90,14 +87,12 @@ describe('App — authenticated', () => {
 
   it('redirects /login to / when already authenticated', () => {
     renderAt('/login')
-    // Should render the protected area (LiveDashboard loading state via mocked useDashboardStats)
     expect(screen.queryByText('Login Page')).not.toBeInTheDocument()
   })
 
   it('renders protected content at /', () => {
     renderAt('/')
-    // LiveDashboard shows loading text while useDashboardStats returns isLoading:true
-    expect(screen.getByText(/loading/i)).toBeInTheDocument()
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
   })
 
   it('renders AuditLogPage at /audit', () => {
