@@ -19,14 +19,17 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly ISecurityEventRepository _security;
     private readonly IAuditLogRepository _auditLog;
+    private readonly LoginOptions _options;
 
     public LoginCommandHandler(
         IUserRepository users, IPasswordHasher hasher,
         IJwtTokenService jwt, IRefreshTokenRepository refreshTokens,
-        ISecurityEventRepository security, IAuditLogRepository auditLog)
+        ISecurityEventRepository security, IAuditLogRepository auditLog,
+        LoginOptions? options = null)
     {
         _users = users; _hasher = hasher; _jwt = jwt;
         _refreshTokens = refreshTokens; _security = security; _auditLog = auditLog;
+        _options = options ?? new LoginOptions();
     }
 
     public async Task<LoginResult> Handle(LoginCommand command, CancellationToken ct)
@@ -52,8 +55,13 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
         user.ResetFailedLogin();
         await _users.SaveAsync(user, ct);
 
+        // Privileged roles must complete MFA — redirect to MFA step whether enabled or not.
+        // If MFA is not yet configured for a privileged role, login is blocked until setup.
         if (user.MfaEnabled)
             return new LoginResult(string.Empty, string.Empty, user.Role.ToString(), RequiresMfa: true);
+
+        if (_options.EnforceMfaForPrivilegedRoles && RequiresMfa(user.Role))
+            return new LoginResult(string.Empty, string.Empty, user.Role.ToString(), MfaSetupRequired: true);
 
         var rawToken = GenerateRawToken();
         var hash = HashToken(rawToken);
@@ -70,6 +78,12 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
 
         return new LoginResult(_jwt.Generate(user), rawToken, user.Role.ToString());
     }
+
+    internal static bool RequiresMfa(UserRole role) => role is
+        UserRole.Administrator or UserRole.SecurityOfficer or
+        UserRole.SuperAdministrator or UserRole.SecurityAdministrator or
+        UserRole.SystemAdministrator or UserRole.InvestigationOfficer or
+        UserRole.Auditor;
 
     internal static string GenerateRawToken() =>
         Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));

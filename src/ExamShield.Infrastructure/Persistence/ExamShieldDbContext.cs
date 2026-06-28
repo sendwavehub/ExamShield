@@ -20,6 +20,8 @@ public class ExamShieldDbContext : DbContext
     public DbSet<NotificationChannelSettings> NotificationChannelSettings => Set<NotificationChannelSettings>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<ReviewRequest> ReviewRequests => Set<ReviewRequest>();
+    public DbSet<ExamAnswerKey> ExamAnswerKeys => Set<ExamAnswerKey>();
+    public DbSet<ExamCandidate> ExamCandidates => Set<ExamCandidate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ExamShieldDbContext).Assembly);

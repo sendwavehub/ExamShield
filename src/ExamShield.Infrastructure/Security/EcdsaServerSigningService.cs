@@ -13,6 +13,8 @@ public sealed class EcdsaServerSigningService : IServerSigningService, IDisposab
         _key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         if (!string.IsNullOrWhiteSpace(privateKeyPem))
             _key.ImportFromPem(privateKeyPem);
+        // Ephemeral key: signatures become unverifiable after restart.
+        // Set ServerSigning:PrivateKeyPem in configuration (env var or secrets) for persistence.
     }
 
     public string Sign(string data)

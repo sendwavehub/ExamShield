@@ -3,6 +3,7 @@ using ExamShield.Api.Endpoints;
 using ExamShield.Api.Hubs;
 using ExamShield.Api.RateLimiting;
 using ExamShield.Application.Behaviors;
+using ExamShield.Application.Commands.Login;
 using ExamShield.Application.Queries.GetOcrResult;
 using ExamShield.Application.Commands.RegisterCapture;
 using ExamShield.Domain.Exceptions;
@@ -27,6 +28,11 @@ builder.Services.AddExamShieldRateLimiting(builder.Configuration);
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IRealtimeNotificationService, SignalRNotificationService>();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSingleton(new LoginOptions
+{
+    EnforceMfaForPrivilegedRoles =
+        builder.Configuration.GetValue("Features:EnforceMfaForPrivilegedRoles", defaultValue: false)
+});
 builder.Services.AddSingleton<HashVerificationService>();
 builder.Services.AddMediatR(cfg =>
 {
@@ -55,21 +61,82 @@ builder.Services
         };
     });
 
-// ── RBAC policies (hierarchical: higher roles include lower-level access) ─
+// ── RBAC policies ─────────────────────────────────────────────────────────
+// Each policy lists every role that satisfies it.
+// Hierarchical: higher-privilege roles pass lower-privilege policies.
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("Student", p =>
-        p.RequireRole("Student", "Operator", "Supervisor", "Auditor", "Administrator", "SecurityOfficer"));
+    // All authenticated users (including students, invigilators, etc.)
+    var allRoles = new[]
+    {
+        "Student", "Operator", "Supervisor", "Auditor", "Administrator", "SecurityOfficer",
+        "Invigilator", "OcrEngine", "ManualReviewer", "ReviewSupervisor", "ScoringEngine",
+        "ResultPublisher", "ExamManager", "DeviceManager", "InvestigationOfficer",
+        "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"
+    };
+
+    options.AddPolicy("Student", p => p.RequireRole(allRoles));
+
+    // Field operations and above
+    options.AddPolicy("Invigilator", p =>
+        p.RequireRole("Invigilator", "Operator", "Supervisor", "Auditor", "Administrator",
+            "SecurityOfficer", "ExamManager", "DeviceManager", "ManualReviewer",
+            "ReviewSupervisor", "ScoringEngine", "ResultPublisher", "InvestigationOfficer",
+            "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"));
+
+    // Legacy Operator policy — kept for backward compatibility
     options.AddPolicy("Operator", p =>
-        p.RequireRole("Operator", "Supervisor", "Auditor", "Administrator", "SecurityOfficer"));
-    options.AddPolicy("Supervisor", p =>
-        p.RequireRole("Supervisor", "Auditor", "Administrator", "SecurityOfficer"));
+        p.RequireRole("Operator", "Supervisor", "Auditor", "Administrator", "SecurityOfficer",
+            "ExamManager", "DeviceManager", "ManualReviewer", "ReviewSupervisor", "ScoringEngine",
+            "ResultPublisher", "InvestigationOfficer", "SuperAdministrator",
+            "SecurityAdministrator", "SystemAdministrator"));
+
+    // Review decisions
+    options.AddPolicy("ManualReviewer", p =>
+        p.RequireRole("ManualReviewer", "ReviewSupervisor", "Supervisor", "Administrator",
+            "SecurityOfficer", "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"));
+
+    options.AddPolicy("ReviewSupervisor", p =>
+        p.RequireRole("ReviewSupervisor", "Supervisor", "Administrator", "SecurityOfficer",
+            "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"));
+
+    // Result publication
+    options.AddPolicy("ResultPublisher", p =>
+        p.RequireRole("ResultPublisher", "Supervisor", "Administrator", "SecurityOfficer",
+            "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"));
+
+    // Exam & device management
+    options.AddPolicy("ExamManager", p =>
+        p.RequireRole("ExamManager", "Administrator", "SecurityOfficer",
+            "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"));
+
+    options.AddPolicy("DeviceManager", p =>
+        p.RequireRole("DeviceManager", "Administrator", "SecurityOfficer",
+            "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"));
+
+    // Read-only oversight
     options.AddPolicy("Auditor", p =>
-        p.RequireRole("Auditor", "Administrator", "SecurityOfficer"));
+        p.RequireRole("Auditor", "Administrator", "SecurityOfficer", "InvestigationOfficer",
+            "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"));
+
+    options.AddPolicy("InvestigationOfficer", p =>
+        p.RequireRole("InvestigationOfficer", "Administrator", "SecurityOfficer",
+            "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"));
+
+    // Admin tiers
+    options.AddPolicy("Supervisor", p =>
+        p.RequireRole("Supervisor", "Auditor", "Administrator", "SecurityOfficer",
+            "ReviewSupervisor", "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"));
+
     options.AddPolicy("Administrator", p =>
-        p.RequireRole("Administrator", "SecurityOfficer"));
+        p.RequireRole("Administrator", "SecurityOfficer",
+            "SuperAdministrator", "SecurityAdministrator", "SystemAdministrator"));
+
     options.AddPolicy("SecurityOfficer", p =>
-        p.RequireRole("SecurityOfficer"));
+        p.RequireRole("SecurityOfficer", "SecurityAdministrator", "SuperAdministrator"));
+
+    options.AddPolicy("SuperAdministrator", p =>
+        p.RequireRole("SuperAdministrator"));
 });
 
 var app = builder.Build();

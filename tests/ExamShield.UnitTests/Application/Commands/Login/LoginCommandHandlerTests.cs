@@ -104,4 +104,20 @@ public sealed class LoginCommandHandlerTests
 
         await _refreshTokens.DidNotReceive().AddAsync(Arg.Any<RefreshToken>(), Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task Handle_WhenPrivilegedRoleMfaNotSetup_AndEnforcementOn_ReturnsMfaSetupRequired()
+    {
+        var enforcedOptions = new LoginOptions { EnforceMfaForPrivilegedRoles = true };
+        var sut = new LoginCommandHandler(_users, _hasher, _jwt, _refreshTokens, _security, _auditLog, enforcedOptions);
+
+        var adminUser = User.Create(new Email("admin@examshield.io"), "$2a$04$hash", UserRole.Administrator);
+        _users.FindByEmailAsync(Arg.Any<Email>(), Arg.Any<CancellationToken>()).Returns(adminUser);
+        _hasher.Verify("secret", adminUser.PasswordHash).Returns(true);
+
+        var result = await sut.Handle(new LoginCommand("admin@examshield.io", "secret"), default);
+
+        result.MfaSetupRequired.Should().BeTrue();
+        result.Token.Should().BeEmpty();
+    }
 }

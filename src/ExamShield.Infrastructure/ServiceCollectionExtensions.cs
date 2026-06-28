@@ -76,8 +76,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReviewRequestRepository, ReviewRequestRepository>();
         services.AddScoped<ISystemSettingsRepository, SystemSettingsRepository>();
         services.AddScoped<INotificationChannelSettingsRepository, NotificationChannelSettingsRepository>();
-        services.AddSingleton<IAnswerKeyRepository, StubAnswerKeyRepository>();
-        services.AddSingleton<IExamCandidateRepository, StubExamCandidateRepository>();
+        services.AddScoped<IAnswerKeyRepository, AnswerKeyRepository>();
+        services.AddScoped<IExamCandidateRepository, ExamCandidateRepository>();
         var wmOptions = configuration.GetSection(WatermarkOptions.Section).Get<WatermarkOptions>() ?? new WatermarkOptions();
         var hmacKey = string.IsNullOrEmpty(wmOptions.HmacKeyBase64)
             ? new byte[32]
@@ -114,8 +114,10 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<ITotpService, TotpService>();
         services.AddSingleton<ITotpUsedCodeCache, InMemoryTotpUsedCodeCache>();
+        services.AddSingleton<IPasswordResetTokenRepository, InMemoryPasswordResetTokenRepository>();
         services.AddHttpClient("Alerts");
         services.AddSingleton<IAlertService, AlertService>();
+        services.AddSingleton<IEmailSender, SmtpEmailSender>();
 
         var hc = services.AddHealthChecks()
             .AddCheck<DbContextHealthCheck>("postgres");

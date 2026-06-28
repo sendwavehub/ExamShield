@@ -2,7 +2,12 @@ namespace ExamShield.Api.Contracts;
 
 public sealed record LoginRequest(string Email, string Password);
 
-public sealed record LoginResponse(string Token, string RefreshToken, string Role, bool RequiresMfa = false);
+public sealed record LoginResponse(
+    string Token,
+    string RefreshToken,
+    string Role,
+    bool RequiresMfa = false,
+    bool MfaSetupRequired = false);
 public sealed record RefreshRequest(string RefreshToken);
 public sealed record MfaLoginRequest(string Email, string Password, string Code);
 

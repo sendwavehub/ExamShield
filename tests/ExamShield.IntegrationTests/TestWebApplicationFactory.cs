@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using ExamShield.Api.Contracts;
+using ExamShield.Application.Interfaces;
 using ExamShield.Domain.Entities;
 using ExamShield.Domain.Enums;
 using ExamShield.Domain.Interfaces;
@@ -107,6 +108,10 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IPasswordResetTokenRepository>();
             services.AddSingleton<IPasswordResetTokenRepository, InMemoryPasswordResetTokenRepository>();
 
+            // Swap real SMTP email sender for a no-op (no SMTP server in CI).
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<IEmailSender, NullEmailSender>();
+
             services.RemoveAll<ITotpUsedCodeCache>();
             services.AddSingleton<ITotpUsedCodeCache, InMemoryTotpUsedCodeCache>();
 
@@ -127,9 +132,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             new LoginRequest(AdminEmail, AdminPassword));
 
         var body = await response.Content.ReadFromJsonAsync<LoginResponse>();
-        if (body!.RequiresMfa || string.IsNullOrEmpty(body.Token))
+        if (body!.RequiresMfa || body.MfaSetupRequired || string.IsNullOrEmpty(body.Token))
             throw new InvalidOperationException(
-                "Test admin user has MFA enabled — factory isolation is broken. Check for static shared user state.");
+                "Test admin user has MFA enabled or requires MFA setup — factory isolation is broken. Check for static shared user state.");
         _cachedToken = body.Token;
         return _cachedToken;
     }
