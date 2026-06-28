@@ -1,3 +1,5 @@
+using ExamShield.Domain.Entities;
+using ExamShield.Domain.Enums;
 using ExamShield.Domain.Exceptions;
 using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
@@ -7,7 +9,9 @@ namespace ExamShield.Application.Commands.ApproveDevice;
 
 public sealed record ApproveDeviceCommand(Guid DeviceId) : IRequest;
 
-public sealed class ApproveDeviceCommandHandler(IDeviceRepository devices)
+public sealed class ApproveDeviceCommandHandler(
+    IDeviceRepository devices,
+    IAuditLogRepository auditLog)
     : IRequestHandler<ApproveDeviceCommand>
 {
     public async Task Handle(ApproveDeviceCommand command, CancellationToken ct)
@@ -17,5 +21,6 @@ public sealed class ApproveDeviceCommandHandler(IDeviceRepository devices)
 
         device.Approve();
         await devices.UpdateAsync(device, ct);
+        await auditLog.AppendAsync(AuditLog.Record(AuditAction.DeviceApproved), ct);
     }
 }

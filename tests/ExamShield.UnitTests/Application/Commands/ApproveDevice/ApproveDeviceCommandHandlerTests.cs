@@ -10,10 +10,12 @@ namespace ExamShield.UnitTests.Application.Commands.ApproveDevice;
 
 public sealed class ApproveDeviceCommandHandlerTests
 {
-    private readonly IDeviceRepository _devices = Substitute.For<IDeviceRepository>();
+    private readonly IDeviceRepository   _devices  = Substitute.For<IDeviceRepository>();
+    private readonly IAuditLogRepository _auditLog = Substitute.For<IAuditLogRepository>();
     private readonly ApproveDeviceCommandHandler _sut;
 
-    public ApproveDeviceCommandHandlerTests() => _sut = new ApproveDeviceCommandHandler(_devices);
+    public ApproveDeviceCommandHandlerTests() =>
+        _sut = new ApproveDeviceCommandHandler(_devices, _auditLog);
 
     [Fact]
     public async Task Handle_PendingDevice_SetsStatusApproved()
