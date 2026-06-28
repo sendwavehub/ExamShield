@@ -18,6 +18,7 @@ public sealed class MfaLoginReplayTests
     private readonly IRefreshTokenRepository  _refreshTokens = Substitute.For<IRefreshTokenRepository>();
     private readonly ITotpService             _totp          = Substitute.For<ITotpService>();
     private readonly ITotpUsedCodeCache       _usedCodes     = Substitute.For<ITotpUsedCodeCache>();
+    private readonly IAuditLogRepository      _auditLog      = Substitute.For<IAuditLogRepository>();
     private readonly MfaLoginCommandHandler   _sut;
 
     private const string Email    = "mfa@test.com";
@@ -27,7 +28,7 @@ public sealed class MfaLoginReplayTests
     public MfaLoginReplayTests()
     {
         _sut = new MfaLoginCommandHandler(
-            _users, _hasher, _jwt, _refreshTokens, _totp, _usedCodes);
+            _users, _hasher, _jwt, _refreshTokens, _totp, _usedCodes, _auditLog);
 
         var user = User.Create(new Email(Email), "hashed", UserRole.Operator);
         user.SetMfaSecret("JBSWY3DPEHPK3PXP");

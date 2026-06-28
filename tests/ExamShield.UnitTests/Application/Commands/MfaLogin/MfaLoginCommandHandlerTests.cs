@@ -18,6 +18,7 @@ public sealed class MfaLoginCommandHandlerTests
     private readonly IRefreshTokenRepository _refreshTokens = Substitute.For<IRefreshTokenRepository>();
     private readonly ITotpService            _totp          = Substitute.For<ITotpService>();
     private readonly ITotpUsedCodeCache      _usedCodes     = Substitute.For<ITotpUsedCodeCache>();
+    private readonly IAuditLogRepository     _auditLog      = Substitute.For<IAuditLogRepository>();
     private readonly MfaLoginCommandHandler  _sut;
 
     private const string Secret = "JBSWY3DPEHPK3PXP";
@@ -26,7 +27,7 @@ public sealed class MfaLoginCommandHandlerTests
     public MfaLoginCommandHandlerTests()
     {
         _usedCodes.IsUsedAsync(Arg.Any<string>(), Arg.Any<string>(), default).Returns(false);
-        _sut = new MfaLoginCommandHandler(_users, _hasher, _jwt, _refreshTokens, _totp, _usedCodes);
+        _sut = new MfaLoginCommandHandler(_users, _hasher, _jwt, _refreshTokens, _totp, _usedCodes, _auditLog);
     }
 
     private static User MakeMfaUser()

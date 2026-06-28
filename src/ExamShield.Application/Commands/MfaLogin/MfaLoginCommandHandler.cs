@@ -1,6 +1,7 @@
 using ExamShield.Application.Commands.Login;
 using ExamShield.Application.Interfaces;
 using ExamShield.Domain.Entities;
+using ExamShield.Domain.Enums;
 using ExamShield.Domain.Exceptions;
 using ExamShield.Domain.Interfaces;
 using ExamShield.Domain.ValueObjects;
@@ -16,14 +17,15 @@ public sealed class MfaLoginCommandHandler : IRequestHandler<MfaLoginCommand, Lo
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly ITotpService _totp;
     private readonly ITotpUsedCodeCache _usedCodes;
+    private readonly IAuditLogRepository _auditLog;
 
     public MfaLoginCommandHandler(
         IUserRepository users, IPasswordHasher hasher,
         IJwtTokenService jwt, IRefreshTokenRepository refreshTokens,
-        ITotpService totp, ITotpUsedCodeCache usedCodes)
+        ITotpService totp, ITotpUsedCodeCache usedCodes, IAuditLogRepository auditLog)
     {
         _users = users; _hasher = hasher; _jwt = jwt;
-        _refreshTokens = refreshTokens; _totp = totp; _usedCodes = usedCodes;
+        _refreshTokens = refreshTokens; _totp = totp; _usedCodes = usedCodes; _auditLog = auditLog;
     }
 
     public async Task<LoginResult> Handle(MfaLoginCommand command, CancellationToken ct)
@@ -63,6 +65,7 @@ public sealed class MfaLoginCommandHandler : IRequestHandler<MfaLoginCommand, Lo
         var hash = LoginCommandHandler.HashToken(rawToken);
         var refreshToken = RefreshToken.Create(user.Id, hash, expiryDays: 7);
         await _refreshTokens.AddAsync(refreshToken, ct);
+        await _auditLog.AppendAsync(AuditLog.Record(AuditAction.UserLoggedIn), ct);
 
         return new LoginResult(_jwt.Generate(user), rawToken, user.Role.ToString());
     }
