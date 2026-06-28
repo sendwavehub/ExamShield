@@ -29,10 +29,6 @@
     --border: 214 32% 91%;
   }
 
-  html {
-    @apply dark;
-  }
-
   body {
     @apply bg-background text-foreground antialiased;
   }

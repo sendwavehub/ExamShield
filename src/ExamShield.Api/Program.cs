@@ -24,6 +24,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? ["http://localhost:5173", "http://localhost:5174"];
+
+builder.Services.AddCors(options =>
+    options.AddDefaultPolicy(policy =>
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials()));
+
 builder.Services.AddExamShieldRateLimiting(builder.Configuration);
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IRealtimeNotificationService, SignalRNotificationService>();
@@ -58,6 +70,19 @@ builder.Services
             ValidAudience = builder.Configuration["Jwt:Audience"] ?? "ExamShield",
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
+        };
+        // SignalR: browsers can't send Authorization headers over WebSocket/SSE,
+        // so the client passes the token in the access_token query parameter.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var token = ctx.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) &&
+                    ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -195,6 +220,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 app.UseHttpsRedirection();
+app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

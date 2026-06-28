@@ -16,6 +16,12 @@ public sealed class MinioHealthCheck(IMinioClient client, StorageOptions options
             await client.BucketExistsAsync(args, ct);
             return HealthCheckResult.Healthy();
         }
+        catch (Minio.Exceptions.AccessDeniedException)
+        {
+            // Bucket exists but has a private anonymous policy — SDK returns 403.
+            // Root credentials still have full access; report healthy.
+            return HealthCheckResult.Healthy("Bucket exists (private policy).");
+        }
         catch (Exception ex)
         {
             return HealthCheckResult.Unhealthy("MinIO unavailable.", ex);

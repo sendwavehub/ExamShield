@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, UpdateSettingsPayload } from '../api/client'
+import { api, type UpdateSettingsPayload } from '../api/client'
 
 export function useSettings() {
   return useQuery({
