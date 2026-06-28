@@ -5,4 +5,5 @@ namespace ExamShield.Domain.Interfaces;
 public interface IJwtTokenService
 {
     string Generate(User user);
+    string GenerateWithMfa(User user);
 }

@@ -67,6 +67,6 @@ public sealed class MfaLoginCommandHandler : IRequestHandler<MfaLoginCommand, Lo
         await _refreshTokens.AddAsync(refreshToken, ct);
         await _auditLog.AppendAsync(AuditLog.Record(AuditAction.UserLoggedIn), ct);
 
-        return new LoginResult(_jwt.Generate(user), rawToken, user.Role.ToString());
+        return new LoginResult(_jwt.GenerateWithMfa(user), rawToken, user.Role.ToString());
     }
 }

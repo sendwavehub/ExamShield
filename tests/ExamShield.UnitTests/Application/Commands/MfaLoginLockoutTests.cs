@@ -78,7 +78,7 @@ public sealed class MfaLoginLockoutTests
         _users.FindByEmailAsync(Arg.Any<Email>(), default).Returns(user);
         _hasher.Verify(Arg.Any<string>(), Arg.Any<string>()).Returns(true);
         _totp.Verify(Arg.Any<string>(), Arg.Any<string>()).Returns(true);
-        _jwt.Generate(Arg.Any<User>()).Returns("tok");
+        _jwt.GenerateWithMfa(Arg.Any<User>()).Returns("tok");
 
         await _sut.Handle(new MfaLoginCommand("mfa@test.com", "pass", "123456"), default);
 

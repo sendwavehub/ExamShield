@@ -45,7 +45,7 @@ public sealed class MfaLoginCommandHandlerTests
         _users.FindByEmailAsync(Arg.Any<Email>(), Arg.Any<CancellationToken>()).Returns(user);
         _hasher.Verify("password", user.PasswordHash).Returns(true);
         _totp.Verify(Secret, ValidCode).Returns(true);
-        _jwt.Generate(user).Returns("jwt");
+        _jwt.GenerateWithMfa(user).Returns("jwt");
 
         var result = await _sut.Handle(
             new MfaLoginCommand("admin@examshield.io", "password", ValidCode), default);

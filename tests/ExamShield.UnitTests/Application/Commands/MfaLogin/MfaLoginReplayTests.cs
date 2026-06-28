@@ -36,7 +36,7 @@ public sealed class MfaLoginReplayTests
         _users.FindByEmailAsync(Arg.Any<Email>(), default).Returns(user);
         _hasher.Verify(Password, "hashed").Returns(true);
         _totp.Verify(Arg.Any<string>(), Code).Returns(true);
-        _jwt.Generate(Arg.Any<User>()).Returns("jwt-token");
+        _jwt.GenerateWithMfa(Arg.Any<User>()).Returns("jwt-token");
     }
 
     [Fact]

@@ -24,18 +24,25 @@ public sealed class JwtTokenService : IJwtTokenService
         _expirationMinutes = int.TryParse(configuration["Jwt:ExpirationMinutes"], out var m) ? m : 60;
     }
 
-    public string Generate(User user)
+    public string Generate(User user) => GenerateCore(user, mfaVerified: false);
+
+    public string GenerateWithMfa(User user) => GenerateCore(user, mfaVerified: true);
+
+    private string GenerateCore(User user, bool mfaVerified)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.Value.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email.Value),
-            new Claim(ClaimTypes.Role, user.Role.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Sub, user.Id.Value.ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email.Value),
+            new(ClaimTypes.Role, user.Role.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        if (mfaVerified)
+            claims.Add(new Claim("amr", "mfa"));
 
         var token = new JwtSecurityToken(
             issuer: _issuer,

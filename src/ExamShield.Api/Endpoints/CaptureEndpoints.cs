@@ -193,6 +193,15 @@ public static class CaptureEndpoints
                 return Results.Forbid();
         }
 
+        // InvestigationOfficers require a MFA-verified session for forensic image access.
+        if (user.FindFirstValue(ClaimTypes.Role) == "InvestigationOfficer" &&
+            !user.HasClaim("amr", "mfa"))
+        {
+            return Results.Json(
+                new { error = "mfa_required", message = "Forensic image access requires an MFA-verified session. Re-authenticate with MFA." },
+                statusCode: StatusCodes.Status403Forbidden);
+        }
+
         if (capture.StorageKey is null)
             return Results.NotFound("Image not yet uploaded.");
 

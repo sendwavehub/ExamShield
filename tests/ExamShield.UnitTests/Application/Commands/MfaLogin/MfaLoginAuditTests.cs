@@ -41,7 +41,7 @@ public sealed class MfaLoginAuditTests
         _hasher.Verify(Arg.Any<string>(), Arg.Any<string>()).Returns(true);
         _totp.Verify(Arg.Any<string>(), Arg.Any<string>()).Returns(true);
         _usedCodes.IsUsedAsync(Arg.Any<string>(), Arg.Any<string>(), default).Returns(false);
-        _jwt.Generate(Arg.Any<User>()).Returns("jwt-token");
+        _jwt.GenerateWithMfa(Arg.Any<User>()).Returns("jwt-token");
 
         await _sut.Handle(new MfaLoginCommand("mfa@test.com", "Pass", "123456"), default);
 
