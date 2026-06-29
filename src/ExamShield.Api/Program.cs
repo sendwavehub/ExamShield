@@ -1,5 +1,6 @@
 using System.Text;
 using ExamShield.Api.Endpoints;
+using Scalar.AspNetCore;
 using ExamShield.Api.Hubs;
 using ExamShield.Api.RateLimiting;
 using ExamShield.Application.Behaviors;
@@ -224,7 +225,13 @@ app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async ctx =>
 }));
 
 if (app.Environment.IsDevelopment())
+{
     app.MapOpenApi();
+    app.MapScalarApiReference(opts => opts
+        .WithTitle("ExamShield API")
+        .WithTheme(ScalarTheme.DeepSpace)
+        .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient));
+}
 
 app.UseHttpsRedirection();
 app.UseCors();

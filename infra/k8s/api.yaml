@@ -37,7 +37,9 @@ data:
   Storage__EnableObjectLock: "true"
   Storage__RetentionDays: "3650"
   Storage__RetentionMode: "COMPLIANCE"
-  Ocr__Type: "Stub"
+  Ocr__Type: "Http"
+  Ocr__Endpoint: "http://ocr-service:8081/ocr/extract"
+  Messaging__MaxOcrRetries: "3"
 ---
 apiVersion: apps/v1
 kind: Deployment

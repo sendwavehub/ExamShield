@@ -12,10 +12,7 @@ public sealed class RabbitMqMessagePublisher(IConnectionFactory factory, Messagi
         await using var connection = await factory.CreateConnectionAsync(ct);
         await using var channel = await connection.CreateChannelAsync(cancellationToken: ct);
 
-        await channel.QueueDeclareAsync(
-            queue: options.OcrQueueName,
-            durable: true, exclusive: false, autoDelete: false,
-            cancellationToken: ct);
+        await OcrQueueSetup.DeclareAsync(channel, options, ct);
 
         var body = JsonSerializer.SerializeToUtf8Bytes(message);
         var props = new BasicProperties { Persistent = true };
