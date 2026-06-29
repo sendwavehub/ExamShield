@@ -81,7 +81,7 @@ public static class ServiceCollectionExtensions
             services.AddHttpClient<IOcrService, HttpOcrService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(ocrOptions.TimeoutSeconds);
-            });
+            }).AddHttpMessageHandler(() => new ExamShield.Infrastructure.Http.ResilienceDelegatingHandler());
             services.AddSingleton(ocrOptions);
         }
         else
@@ -116,7 +116,7 @@ public static class ServiceCollectionExtensions
             {
                 c.BaseAddress = new Uri(configuration["Vault:Address"] ?? "http://vault:8200");
                 c.DefaultRequestHeaders.Add("X-Vault-Token", configuration["Vault:Token"] ?? "");
-            });
+            }).AddHttpMessageHandler(() => new ExamShield.Infrastructure.Http.ResilienceDelegatingHandler());
             var keyName = configuration["Vault:KeyName"] ?? "examshield-dek";
             services.AddSingleton<IKeyManagementService>(sp =>
                 new VaultKeyManagementService(sp.GetRequiredService<IHttpClientFactory>().CreateClient("Vault"), keyName));
@@ -174,8 +174,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITotpService, TotpService>();
         services.AddSingleton<ITotpUsedCodeCache, InMemoryTotpUsedCodeCache>();
         services.AddSingleton<IPasswordResetTokenRepository, InMemoryPasswordResetTokenRepository>();
-        services.AddHttpClient("Alerts");
-        services.AddHttpClient("Oidc");
+        services.AddHttpClient("Alerts")
+            .AddHttpMessageHandler(() => new ExamShield.Infrastructure.Http.ResilienceDelegatingHandler());
+        services.AddHttpClient("Oidc")
+            .AddHttpMessageHandler(() => new ExamShield.Infrastructure.Http.ResilienceDelegatingHandler());
         services.AddSingleton<IAlertService, AlertService>();
         var oidcOptions = configuration.GetSection(OidcOptions.Section).Get<OidcOptions>() ?? new OidcOptions();
         services.AddSingleton(oidcOptions);

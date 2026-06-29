@@ -234,6 +234,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<ExamShield.Api.Middleware.SecurityHeadersMiddleware>();
 app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();

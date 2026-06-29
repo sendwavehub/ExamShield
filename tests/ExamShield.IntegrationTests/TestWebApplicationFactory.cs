@@ -121,6 +121,12 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IImageStorage>();
             services.AddSingleton<IImageStorage, InMemoryImageStorage>();
 
+            // Bypass LSB steganography — it requires a decodable image (JPEG/PNG).
+            // Integration tests use arbitrary byte arrays; watermark correctness is covered
+            // by LsbSteganographyServiceTests in the unit test suite.
+            services.RemoveAll<IWatermarkService>();
+            services.AddSingleton<IWatermarkService, NullWatermarkService>();
+
             // Swap real SMTP email sender for a no-op (no SMTP server in CI).
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender, NullEmailSender>();
