@@ -536,6 +536,11 @@ export const api = {
 
   getExamStatistics: (examId: string) =>
     request<ExamStatisticsResponse>(`/score/exams/${examId}/statistics`),
+
+  getCaptureImage: (captureId: string) =>
+    fetch(`${BASE_URL}/captures/${captureId}/image`, { headers: { ...authHeaders() } })
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.blob() })
+      .then(blob => URL.createObjectURL(blob)),
 }
 
 export interface CaptureItem {

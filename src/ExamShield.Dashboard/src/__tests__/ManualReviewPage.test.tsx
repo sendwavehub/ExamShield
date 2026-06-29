@@ -10,6 +10,7 @@ vi.mock('../api/client', () => ({
     getPendingReviews: vi.fn(),
     getReviewDetail: vi.fn(),
     submitReview: vi.fn(),
+    getCaptureImage: vi.fn(),
   },
 }))
 
@@ -49,6 +50,7 @@ beforeEach(() => {
   vi.mocked(apiClient.api.getPendingReviews).mockResolvedValue({ reviews: mockReviews })
   vi.mocked(apiClient.api.getReviewDetail).mockResolvedValue(mockDetail)
   vi.mocked(apiClient.api.submitReview).mockResolvedValue(undefined)
+  vi.mocked(apiClient.api.getCaptureImage).mockResolvedValue('blob:mock-capture-image')
 })
 
 describe('ManualReviewPage', () => {
@@ -102,5 +104,25 @@ describe('ManualReviewPage', () => {
     vi.mocked(apiClient.api.getPendingReviews).mockImplementation(() => new Promise(() => {}))
     renderPage()
     expect(screen.getByText(/loading/i)).toBeInTheDocument()
+  })
+
+  it('shows the original capture image in the detail panel', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByText('cap-1'))
+    const img = await screen.findByRole('img', { name: /answer sheet/i })
+    expect(img).toHaveAttribute('src', 'blob:mock-capture-image')
+  })
+
+  it('shows pixel lock badge in the image panel', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByText('cap-1'))
+    expect(await screen.findByText(/pixel lock/i)).toBeInTheDocument()
+  })
+
+  it('fetches capture image using the review captureId', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByText('cap-1'))
+    await screen.findByRole('img', { name: /answer sheet/i })
+    expect(apiClient.api.getCaptureImage).toHaveBeenCalledWith('cap-1')
   })
 })

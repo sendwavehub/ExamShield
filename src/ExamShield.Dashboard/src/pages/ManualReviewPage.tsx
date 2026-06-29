@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type PendingReviewItem, type ReviewDetailResponse, type OcrAnswer } from '../api/client'
-import { AlertTriangle, CheckCircle, Send, ThumbsUp, ThumbsDown, ArrowUpCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Send, ThumbsUp, ThumbsDown, ArrowUpCircle, Lock } from 'lucide-react'
 import { cn } from '../lib/utils'
+import ImageViewer from '../components/ImageViewer'
 
 const LOW_CONFIDENCE_THRESHOLD = 0.6
 
@@ -50,8 +51,9 @@ function AnswerRow({ answer, selected, onSelect, readOnly }: {
   )
 }
 
-function ReviewDetailPanel({ reviewId, detail, onDone }: {
+function ReviewDetailPanel({ reviewId, captureId, detail, onDone }: {
   reviewId: string
+  captureId: string
   detail: ReviewDetailResponse
   onDone: () => void
 }) {
@@ -61,6 +63,12 @@ function ReviewDetailPanel({ reviewId, detail, onDone }: {
   )
   const [reasonMode, setReasonMode] = useState<'reject' | 'escalate' | null>(null)
   const [reason, setReason] = useState('')
+
+  const { data: imageUrl } = useQuery({
+    queryKey: ['capture-image', captureId],
+    queryFn: () => api.getCaptureImage(captureId),
+    staleTime: Infinity,
+  })
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['reviews'] })
@@ -95,124 +103,145 @@ function ReviewDetailPanel({ reviewId, detail, onDone }: {
   const isTerminal  = !isPending && !isCompleted
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">OCR Answers</h2>
-        <div className="flex items-center gap-3">
-          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', STATUS_VARIANT[detail.status] ?? 'bg-muted text-muted-foreground')}>
-            {detail.status}
+    <div className="grid grid-cols-[1fr,420px] gap-6 h-full min-h-0">
+      {/* Left: original image (read-only, Pixel Lock) */}
+      <div className="flex flex-col gap-3 min-h-0">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold text-foreground">Original Answer Sheet</h2>
+          <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2 py-0.5 text-xs font-medium text-cyan-400">
+            <Lock className="h-3 w-3" />
+            Pixel Lock
           </span>
-          <span className="text-xs text-muted-foreground font-mono truncate max-w-[180px]">{detail.captureId}</span>
         </div>
+        {imageUrl ? (
+          <ImageViewer src={imageUrl} alt="Answer sheet" />
+        ) : (
+          <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-border text-muted-foreground text-sm">
+            Loading image…
+          </div>
+        )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              {['Question', 'Answer', 'Confidence'].map(h => (
-                <th key={h} className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">{h}</th>
+      {/* Right: OCR predictions + actions */}
+      <div className="flex flex-col gap-4 overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-foreground">OCR Answers</h2>
+          <div className="flex items-center gap-3">
+            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', STATUS_VARIANT[detail.status] ?? 'bg-muted text-muted-foreground')}>
+              {detail.status}
+            </span>
+            <span className="text-xs text-muted-foreground font-mono truncate max-w-[140px]">{detail.captureId}</span>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                {['Question', 'Answer', 'Confidence'].map(h => (
+                  <th key={h} className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {detail.ocrAnswers.map(a => (
+                <AnswerRow
+                  key={a.questionNumber}
+                  answer={a}
+                  selected={overrides[a.questionNumber] ?? a.text}
+                  onSelect={isPending ? v => setOverrides(prev => ({ ...prev, [a.questionNumber]: v })) : undefined}
+                  readOnly={!isPending}
+                />
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {detail.ocrAnswers.map(a => (
-              <AnswerRow
-                key={a.questionNumber}
-                answer={a}
-                selected={overrides[a.questionNumber] ?? a.text}
-                onSelect={isPending ? v => setOverrides(prev => ({ ...prev, [a.questionNumber]: v })) : undefined}
-                readOnly={!isPending}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
 
-      {/* Reviewer submit */}
-      {isPending && (
-        <button
-          onClick={() => submit(detail.ocrAnswers.map(a => ({ questionNumber: a.questionNumber, text: overrides[a.questionNumber] ?? a.text })))}
-          disabled={isBusy}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-        >
-          <Send className="h-4 w-4" />
-          {isSubmitting ? 'Submitting…' : 'Submit Review'}
-        </button>
-      )}
+        {/* Reviewer submit */}
+        {isPending && (
+          <button
+            onClick={() => submit(detail.ocrAnswers.map(a => ({ questionNumber: a.questionNumber, text: overrides[a.questionNumber] ?? a.text })))}
+            disabled={isBusy}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          >
+            <Send className="h-4 w-4" />
+            {isSubmitting ? 'Submitting…' : 'Submit Review'}
+          </button>
+        )}
 
-      {/* Supervisor actions */}
-      {isCompleted && (
-        <div className="space-y-3">
-          {reasonMode ? (
-            <div className="space-y-2">
-              <input
-                autoFocus
-                value={reason}
-                onChange={e => setReason(e.target.value)}
-                placeholder={reasonMode === 'reject' ? 'Rejection reason…' : 'Escalation reason…'}
-                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+        {/* Supervisor actions */}
+        {isCompleted && (
+          <div className="space-y-3">
+            {reasonMode ? (
+              <div className="space-y-2">
+                <input
+                  autoFocus
+                  value={reason}
+                  onChange={e => setReason(e.target.value)}
+                  placeholder={reasonMode === 'reject' ? 'Rejection reason…' : 'Escalation reason…'}
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!reason.trim()) return
+                      reasonMode === 'reject' ? reject(reason) : escalate(reason)
+                      setReason('')
+                      setReasonMode(null)
+                    }}
+                    disabled={isBusy || !reason.trim()}
+                    className={cn(
+                      'rounded-lg px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50',
+                      reasonMode === 'reject' ? 'bg-red-600' : 'bg-orange-500'
+                    )}
+                  >
+                    {isBusy ? 'Saving…' : (reasonMode === 'reject' ? 'Confirm Reject' : 'Confirm Escalate')}
+                  </button>
+                  <button
+                    onClick={() => { setReasonMode(null); setReason('') }}
+                    className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted/40"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
               <div className="flex gap-2">
                 <button
-                  onClick={() => {
-                    if (!reason.trim()) return
-                    reasonMode === 'reject' ? reject(reason) : escalate(reason)
-                    setReason('')
-                    setReasonMode(null)
-                  }}
-                  disabled={isBusy || !reason.trim()}
-                  className={cn(
-                    'rounded-lg px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50',
-                    reasonMode === 'reject' ? 'bg-red-600' : 'bg-orange-500'
-                  )}
+                  onClick={() => approve()}
+                  disabled={isBusy}
+                  className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
                 >
-                  {isBusy ? 'Saving…' : (reasonMode === 'reject' ? 'Confirm Reject' : 'Confirm Escalate')}
+                  <ThumbsUp className="h-4 w-4" />
+                  {isApproving ? 'Approving…' : 'Approve'}
                 </button>
                 <button
-                  onClick={() => { setReasonMode(null); setReason('') }}
-                  className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted/40"
+                  onClick={() => setReasonMode('reject')}
+                  disabled={isBusy}
+                  className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
                 >
-                  Cancel
+                  <ThumbsDown className="h-4 w-4" />
+                  Reject
+                </button>
+                <button
+                  onClick={() => setReasonMode('escalate')}
+                  disabled={isBusy}
+                  className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+                >
+                  <ArrowUpCircle className="h-4 w-4" />
+                  Escalate
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={() => approve()}
-                disabled={isBusy}
-                className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-              >
-                <ThumbsUp className="h-4 w-4" />
-                {isApproving ? 'Approving…' : 'Approve'}
-              </button>
-              <button
-                onClick={() => setReasonMode('reject')}
-                disabled={isBusy}
-                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-              >
-                <ThumbsDown className="h-4 w-4" />
-                Reject
-              </button>
-              <button
-                onClick={() => setReasonMode('escalate')}
-                disabled={isBusy}
-                className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
-              >
-                <ArrowUpCircle className="h-4 w-4" />
-                Escalate
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
-      {isTerminal && (
-        <p className="text-sm text-muted-foreground">
-          This review is <span className="font-medium">{detail.status.toLowerCase()}</span> and requires no further action.
-        </p>
-      )}
+        {isTerminal && (
+          <p className="text-sm text-muted-foreground">
+            This review is <span className="font-medium">{detail.status.toLowerCase()}</span> and requires no further action.
+          </p>
+        )}
+      </div>
     </div>
   )
 }
@@ -232,12 +261,13 @@ export default function ManualReviewPage() {
     enabled: !!selectedId,
   })
 
+  const selectedReview = listData?.reviews.find(r => r.reviewId === selectedId)
   const pendingCount = listData?.reviews.length ?? 0
 
   return (
     <div className="flex h-full gap-6">
       {/* Left: pending list */}
-      <div className="w-80 shrink-0 space-y-4">
+      <div className="w-72 shrink-0 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Manual Review</h1>
           {listData && (
@@ -288,11 +318,12 @@ export default function ManualReviewPage() {
         )}
       </div>
 
-      {/* Right: detail panel */}
-      <div className="flex-1">
-        {detail && selectedId ? (
+      {/* Right: two-panel detail (image + OCR) */}
+      <div className="flex-1 min-w-0">
+        {detail && selectedId && selectedReview ? (
           <ReviewDetailPanel
             reviewId={selectedId}
+            captureId={selectedReview.captureId}
             detail={detail}
             onDone={() => setSelectedId(null)}
           />
