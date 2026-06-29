@@ -58,7 +58,8 @@ ExamShield/
 | Messaging | RabbitMQ |
 | Object Storage | MinIO (dev) / AWS S3 Object Lock / Azure Immutable Blob (prod) |
 | Image Processing | OpenCV, ML Kit, Tesseract, EasyOCR |
-| Auth | JWT (ECDSA P-256 or Ed25519 device keys, RBAC) |
+| Auth | JWT (ECDSA P-256 or Ed25519 device keys, RBAC, MFA TOTP, `amr` claim) |
+| Image Encryption | AES-256-GCM per-image DEK + master key envelope (dev: config, prod: KMS/Vault) |
 | Container | Docker Compose (dev), Kubernetes (prod) |
 
 ## Core Security Invariants
@@ -71,6 +72,8 @@ These must never be compromised in any implementation:
 4. **Invisible watermark** — embedded in every stored image (exam ID, timestamp, nonce, hash, scanner ID); watermark destruction signals tampering.
 5. **Read-only review** — manual reviewers can only record their interpreted answer; they cannot modify or replace the original image.
 6. **Chain of custody** — every state transition (Student → Invigilator → Device → Server → OCR → Reviewer → Score) must be recorded and digitally signed.
+7. **Encryption at rest** — every stored image is AES-256-GCM encrypted with a per-image DEK before writing to object storage. The DEK is envelope-encrypted with a master key from config/secrets. Raw object storage access (MinIO CLI, S3 CLI, SSH) yields only ciphertext.
+8. **Answer sheet image access is an explicit allowlist** — only 6 roles may retrieve image bytes via the API (`ImageViewer` policy). Admin-level roles (Administrator, Auditor, SecurityOfficer) are deliberately excluded and receive 403.
 
 ## Domain Model (planned tables)
 
@@ -168,6 +171,64 @@ These pipeline constraints are enforced at the authorization layer — no role o
 - Role-Based Access Control (RBAC) + Permission-Based + Policy-Based + Claims-Based
 - Tenant isolation and fine-grained resource authorization
 - Every privilege escalation requires approval
+
+## Implemented Security Controls (as of 2026-06-28)
+
+These controls are **fully implemented** — do not remove or bypass them.
+
+### Answer Sheet Image Access (Defence-in-Depth)
+
+Four independent layers protect `GET /captures/{id}/image`:
+
+| Layer | Location | Mechanism |
+|---|---|---|
+| Frontend gate | `usePermissions.ts` + `AnswerSheetsPage.tsx` | Hides "View Image" button for blocked roles; shows "Restricted" lock |
+| API policy | `Program.cs` `"ImageViewer"` policy | Allowlist: `Operator`, `Invigilator`, `Supervisor`, `ManualReviewer`, `ReviewSupervisor`, `InvestigationOfficer` — admins/auditors get 403 |
+| Invigilator scope | `CaptureEndpoints.cs` `IsInvigilatorRole()` | Invigilator/Operator may only retrieve their own captures (`InvigilatorId` check) |
+| MFA step-up | `CaptureEndpoints.cs` `HasClaim("amr","mfa")` | `InvestigationOfficer` must have completed MFA (`GenerateWithMfa` → `amr: mfa` claim) |
+
+### Image Encryption at Rest
+
+**Upload pipeline** (`UploadImageCommandHandler`):
+```
+ImageBytes → hash verify → watermark embed → AesGcmImageEncryptionService.Encrypt()
+  → ciphertext stored in MinIO
+  → encryptedDek stored in Captures.EncryptedDek (bytea, nullable)
+```
+
+**Read pipeline** (`GetCaptureImageAsync`, `ServerVerifyCaptureQueryHandler`, `TriggerOcrCommandHandler`):
+```
+Retrieve ciphertext from MinIO
+→ if capture.EncryptedDek != null → AesGcmImageEncryptionService.Decrypt()
+→ use plaintext bytes (watermark extract / OCR / serve to browser)
+```
+
+**Key hierarchy:**
+- Per-image DEK: random AES-256 key, generated at upload time, discarded after use
+- DEK is AES-256-GCM encrypted with the master key → stored in `Captures.EncryptedDek`
+- Master key: `Encryption:MasterKeyBase64` (32 bytes, base64) in config
+- **Dev/test**: key in `appsettings.Development.json` / `appsettings.Testing.json`
+- **Prod**: inject via HashiCorp Vault Transit, AWS KMS, or Azure Key Vault — never commit prod key
+
+`EncryptedDek` is nullable for backward compatibility. Captures with `null` DEK (pre-encryption, or in tests using `RecordUpload("key")`) have their bytes returned as-is.
+
+### MFA-Verified JWT (`amr` claim)
+
+`IJwtTokenService` has two methods:
+- `Generate(User user)` — standard JWT, no MFA indicator (used by `LoginCommandHandler` and `RefreshTokenCommandHandler`)
+- `GenerateWithMfa(User user)` — adds `amr: mfa` claim (used **only** by `MfaLoginCommandHandler`)
+
+Endpoint checks: `user.HasClaim("amr", "mfa")` — returns `403 + {error: "mfa_required"}` for InvestigationOfficer without MFA.
+
+### Invigilator Scope Enforcement
+
+`Capture.InvigilatorId` (nullable `UserId`) is stamped at capture registration from the JWT `sub` claim.
+
+- `GET /captures` — forces `InvigilatorId = CallerUserId(user)` filter for Invigilator/Operator roles
+- `GET /captures/{id}/image` — enforces ownership; `InvigilatorId == null` means access denied (safe default for legacy captures)
+- `ICaptureRepository.ListPagedAsync` signature: `(page, pageSize, examId, status, deviceId, studentId, invigilatorId, ct)`
+
+---
 
 ## Alert Triggers
 

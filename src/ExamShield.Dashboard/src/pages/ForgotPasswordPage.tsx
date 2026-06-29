@@ -19,6 +19,8 @@ function ForgotPasswordForm() {
     setLoading(true)
     try {
       await api.forgotPassword(email)
+    } catch {
+      // intentional — anti-enumeration: always show confirmation regardless of outcome
     } finally {
       setSubmitted(true)
       setLoading(false)

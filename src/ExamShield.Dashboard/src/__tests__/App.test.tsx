@@ -39,6 +39,7 @@ function setupAuth(isAuthenticated: boolean) {
     auth: { token: isAuthenticated ? 'tok' : null, role: isAuthenticated ? 'Administrator' : null },
     login: vi.fn(),
     completeMfaLogin: vi.fn(),
+    logout: vi.fn(),
     requiresMfa: false,
   })
 }

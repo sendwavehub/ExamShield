@@ -1,8 +1,43 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5083'
 
-function authHeaders(): HeadersInit {
-  const token = localStorage.getItem('auth_token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
+function authHeaders(token?: string): HeadersInit {
+  const t = token ?? localStorage.getItem('auth_token')
+  return t ? { Authorization: `Bearer ${t}` } : {}
+}
+
+// Single in-flight refresh to prevent parallel 401s each spawning a refresh call.
+let _refreshing: Promise<string | null> | null = null
+
+async function tryRefresh(): Promise<string | null> {
+  if (_refreshing) return _refreshing
+  const refreshToken = localStorage.getItem('auth_refresh_token')
+  if (!refreshToken) return null
+  _refreshing = (async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      })
+      if (!res.ok) return null
+      const data = await res.json() as { token: string; refreshToken: string }
+      localStorage.setItem('auth_token', data.token)
+      localStorage.setItem('auth_refresh_token', data.refreshToken)
+      return data.token
+    } catch {
+      return null
+    } finally {
+      _refreshing = null
+    }
+  })()
+  return _refreshing
+}
+
+function signOut() {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('auth_role')
+  localStorage.removeItem('auth_refresh_token')
+  window.dispatchEvent(new CustomEvent('auth:expired'))
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -10,6 +45,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { 'Content-Type': 'application/json', ...authHeaders(), ...init?.headers },
   })
+
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    const newToken = await tryRefresh()
+    if (newToken) {
+      const retry = await fetch(`${BASE_URL}${path}`, {
+        ...init,
+        headers: { 'Content-Type': 'application/json', ...authHeaders(newToken), ...init?.headers },
+      })
+      if (!retry.ok) throw new Error(`${retry.status}: ${await retry.text()}`)
+      return retry.json() as Promise<T>
+    }
+    signOut()
+    throw new Error('401: Unauthorized')
+  }
+
   if (!res.ok) {
     const text = await res.text()
     throw new Error(`${res.status}: ${text}`)

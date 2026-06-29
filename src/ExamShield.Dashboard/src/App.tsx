@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from './hooks/useAuth'
@@ -46,7 +47,13 @@ function NotificationsOverlay() {
 }
 
 export default function App() {
-  const { isAuthenticated, login, completeMfaLogin, requiresMfa, auth } = useAuth()
+  const { isAuthenticated, login, completeMfaLogin, requiresMfa, auth, logout } = useAuth()
+
+  useEffect(() => {
+    const handle = () => logout()
+    window.addEventListener('auth:expired', handle)
+    return () => window.removeEventListener('auth:expired', handle)
+  }, [logout])
 
   return (
     <QueryClientProvider client={queryClient}>
