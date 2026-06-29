@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { KeyRound, Shield, ShieldCheck, ShieldOff } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 type SetupData = { secret: string; qrUri: string }
 
@@ -118,16 +119,19 @@ export default function MfaPage() {
           <div className="glass-card p-6 mt-4 space-y-4">
             <p className="text-sm font-semibold text-foreground">Scan in your authenticator app</p>
 
-            <div className="rounded-2xl p-3 font-mono text-xs break-all"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
-              <p className="text-muted-foreground mb-1 text-[10px] uppercase tracking-wider">Secret</p>
-              <p className="text-foreground">{setup.secret}</p>
+            <div className="flex justify-center rounded-2xl p-4 bg-white">
+              <QRCodeSVG
+                value={setup.qrUri}
+                size={180}
+                role="img"
+                aria-label="QR code for authenticator app"
+              />
             </div>
 
-            <div className="rounded-2xl p-3 font-mono text-[10px] break-all"
+            <div className="rounded-2xl p-3 font-mono text-xs break-all"
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
-              <p className="text-muted-foreground mb-1 text-[10px] uppercase tracking-wider">QR URI</p>
-              <p className="text-muted-foreground">{setup.qrUri}</p>
+              <p className="text-muted-foreground mb-1 text-[10px] uppercase tracking-wider">Manual entry key</p>
+              <p className="text-foreground">{setup.secret}</p>
             </div>
 
             <div className="space-y-2 pt-1">
@@ -139,11 +143,10 @@ export default function MfaPage() {
                 type="text"
                 maxLength={6}
                 inputMode="numeric"
-                placeholder="000000"
                 value={code}
                 onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setError(null) }}
                 className="input-glass text-center font-mono tracking-[0.5em] text-xl"
-              placeholder="6-digit code"
+                placeholder="6-digit code"
               />
               {error && (
                 <p className="rounded-xl px-3 py-2 text-sm text-red-400"
