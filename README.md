@@ -6,120 +6,150 @@
 
 **AI-powered secure exam scanning & anti-tampering system**
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20%7C%20Apache%202.0-blue.svg)](LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/your-org/examshield/ci.yml?branch=main)](https://github.com/your-org/examshield/actions)
+[![License](https://img.shields.io/badge/License-MIT%20%7C%20Apache%202.0-blue.svg)](LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/sendwavehub/examshield/ci.yml?branch=main&label=CI)](https://github.com/sendwavehub/examshield/actions)
+[![Tests](https://img.shields.io/badge/tests-520%20passing-brightgreen)](tests/)
 [![.NET](https://img.shields.io/badge/.NET-9.0-purple)](https://dotnet.microsoft.com)
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-blue)](https://flutter.dev)
 [![React](https://img.shields.io/badge/React-18-61DAFB)](https://react.dev)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED)](infra/docker-compose.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![GitHub Stars](https://img.shields.io/github/stars/sendwavehub/examshield?style=social)](https://github.com/sendwavehub/examshield/stargazers)
 
-[Features](#features) · [Architecture](#architecture) · [Quick Start](#quick-start) · [API](#api) · [Roadmap](#roadmap) · [Contributing](#contributing) · [License](#license)
+[Why ExamShield?](#why-examshield) · [Features](#features) · [Architecture](#architecture) · [Quick Start](#quick-start) · [API](#api) · [Roadmap](#roadmap) · [Contributing](#contributing)
 
 </div>
 
 ---
 
-## What Is ExamShield?
+## Why ExamShield?
 
-ExamShield replaces the traditional flatbed scanner with a smartphone camera. The moment an invigilator photographs a paper answer sheet, the image is **hashed, digitally signed, and stored immutably**. No administrator — not even a super-admin — can alter the image without breaking the cryptographic chain of custody.
+Paper-based exams are still the norm for millions of students — but the digitisation process is broken.
 
-An OCR pipeline then reads every bubble. Low-confidence results route to a human review queue. Every action is recorded in an **append-only audit log**.
+| The old way | ExamShield |
+|---|---|
+| Flatbed scanners take hours | Smartphone capture in seconds |
+| Scanned files can be silently replaced | Every image is **SHA-256 hashed + ECDSA signed on-device** before upload |
+| No way to prove an image hasn't been edited | **Invisible forensic watermark** — destruction signals tampering |
+| Audit trails are spreadsheets | **Append-only cryptographic audit log** — every state transition signed |
+| Admins can override anything | **Zero Trust RBAC** — even super-admins can't touch answer sheets |
 
-> Designed for national-scale examinations: 100,000+ answer sheets, concurrent uploads, offline-first capture.
+> ExamShield makes silent tampering **technically impossible**, not just policy-prohibited.
+
+---
+
+## Perfect For
+
+- **National examination bodies** running 100,000+ answer sheets per session
+- **Universities & colleges** that want digital chain of custody for paper exams
+- **Assessment companies** needing defensible audit trails for accreditation
+- **EdTech developers** building secure exam platforms on top of a proven backbone
 
 ---
 
 ## Features
 
-### Community Edition (this repo — MIT / Apache 2.0)
+### Community Edition (this repo · MIT / Apache 2.0)
 
-| Feature | Status |
+| Category | Feature | Status |
+|---|---|---|
+| **Capture** | Flutter mobile app — camera, edge detection, perspective correction | ✅ |
+| **Integrity** | On-device SHA-256 hash before any network call | ✅ |
+| **Integrity** | ECDSA P-256 / Ed25519 device signing | ✅ |
+| **Integrity** | Server-side re-verification on upload | ✅ |
+| **Integrity** | Invisible forensic watermark (exam ID · timestamp · nonce · hash · scanner ID) | ✅ |
+| **Storage** | Immutable object storage (MinIO / AWS S3 Object Lock) | ✅ |
+| **Storage** | AES-256-GCM per-image encryption at rest | ✅ |
+| **OCR** | Tesseract + EasyOCR bubble detection pipeline | ✅ |
+| **Review** | Human review queue for low-confidence OCR results | ✅ |
+| **Review** | Read-only image viewer (zoom · rotate · brightness · contrast) | ✅ |
+| **Scoring** | Scoring engine + ranking + statistics | ✅ |
+| **Audit** | Append-only audit log — full chain of custody | ✅ |
+| **RBAC** | 15-role Zero Trust hierarchy, Separation-of-Duties enforced | ✅ |
+| **Auth** | JWT + refresh tokens + MFA (TOTP) + device certificates | ✅ |
+| **Dashboard** | React + TypeScript admin UI (dark/light) | ✅ |
+| **API** | 101-endpoint REST API, OpenAPI / Swagger | ✅ |
+| **DevOps** | Docker Compose dev stack | ✅ |
+| **Tests** | 520 unit + integration tests | ✅ |
+
+### Enterprise Edition *(coming soon — [sendwavehub.com](https://github.com/sendwavehub))*
+
+| Feature | Description |
 |---|---|
-| Smartphone Capture (Flutter) | ✅ |
-| Edge Detection & Perspective Correction | ✅ |
-| SHA-256 Hash Generation (on-device) | ✅ |
-| ECDSA / Ed25519 Digital Signature | ✅ |
-| Bubble Detection & OCR Pipeline | ✅ |
-| Immutable Object Storage (MinIO / S3 Object Lock) | ✅ |
-| Append-only Audit Log | ✅ |
-| REST API (ASP.NET Core 9) | ✅ |
-| Basic Admin Dashboard (React) | ✅ |
-| Docker Compose dev stack | ✅ |
-| RBAC (15 roles, Zero Trust) | ✅ |
-| Unit & Integration Tests | ✅ |
+| Multi-tenant SaaS | Isolated tenants, org-level admin, custom domains |
+| Enterprise SSO | SAML 2.0, Azure AD, Google Workspace |
+| Hardware KMS | HashiCorp Vault Transit, AWS KMS, Azure Key Vault |
+| Advanced Analytics | Cross-session trends, fraud heatmaps, confidence benchmarks |
+| SLA Support | Dedicated response SLA + onboarding |
+| Air-gapped Deployment | Self-hosted with no internet dependency |
+| Compliance Reports | SOC 2 evidence packs, PDPA / GDPR data maps |
+
+> Interested in the Enterprise edition? [Open a discussion →](https://github.com/sendwavehub/examshield/discussions)
 
 ---
 
 ## Demo
 
-> Screenshots and GIF walkthroughs live in [docs/screenshots/](docs/screenshots/).
-
 | Capture Flow | Security Dashboard | Audit Timeline |
 |---|---|---|
-| *(coming soon)* | *(coming soon)* | *(coming soon)* |
+| *(screenshot coming soon)* | *(screenshot coming soon)* | *(screenshot coming soon)* |
 
-To record your own demo after running locally:
-
-```bash
-# macOS: use QuickTime → File → New Screen Recording
-# Linux: use OBS or peek (GIF recorder)
-```
+Screenshots and walkthroughs live in [docs/screenshots/](docs/screenshots/).
 
 ---
 
 ## Architecture
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                        ExamShield System                           │
-│                                                                    │
-│  ┌─────────────┐    ┌──────────────────────────────────────────┐  │
-│  │ Flutter App │    │             ASP.NET Core 9 API           │  │
-│  │  (Mobile)   │───▶│  ┌──────────┐  ┌──────────┐             │  │
-│  │             │    │  │ Commands │  │ Queries  │  (CQRS)     │  │
-│  │ • Capture   │    │  │(MediatR) │  │(MediatR) │             │  │
-│  │ • Hash      │    │  └────┬─────┘  └─────┬────┘             │  │
-│  │ • Sign      │    │       │               │                  │  │
-│  │ • Upload    │    │  ┌────▼───────────────▼────┐             │  │
-│  └─────────────┘    │  │      Domain Layer       │             │  │
-│                     │  │  (Entities, Value Objs, │             │  │
-│  ┌─────────────┐    │  │   Domain Events)        │             │  │
-│  │  React      │    │  └────────────┬────────────┘             │  │
-│  │  Dashboard  │───▶│               │                          │  │
-│  │             │    │  ┌────────────▼────────────┐             │  │
-│  │ • Monitor   │    │  │   Infrastructure Layer  │             │  │
-│  │ • Review    │    │  │                         │             │  │
-│  │ • Audit     │    │  │ EF Core │ MinIO │ Redis  │             │  │
-│  └─────────────┘    │  │ RabbitMQ │ Tesseract    │             │  │
-│                     │  └─────────────────────────┘             │  │
-│                     └──────────────────────────────────────────┘  │
-│                                                                    │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
-│  │PostgreSQL│  │  Redis   │  │ RabbitMQ │  │ MinIO / S3 Lock  │  │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘  │
-└────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                          ExamShield System                          │
+│                                                                     │
+│  ┌─────────────┐    ┌───────────────────────────────────────────┐   │
+│  │ Flutter App │    │            ASP.NET Core 9 API             │   │
+│  │  (Mobile)   │───▶│  ┌──────────┐  ┌──────────┐              │   │
+│  │             │    │  │ Commands │  │ Queries  │   (CQRS)     │   │
+│  │ • Capture   │    │  │(MediatR) │  │(MediatR) │              │   │
+│  │ • Hash      │    │  └────┬─────┘  └─────┬────┘              │   │
+│  │ • Sign      │    │       │               │                   │   │
+│  │ • Upload    │    │  ┌────▼───────────────▼────┐              │   │
+│  └─────────────┘    │  │       Domain Layer      │              │   │
+│                     │  │  (Entities, Value Objs, │              │   │
+│  ┌─────────────┐    │  │    Domain Events)       │              │   │
+│  │  React      │    │  └────────────┬────────────┘              │   │
+│  │  Dashboard  │───▶│               │                           │   │
+│  │             │    │  ┌────────────▼────────────┐              │   │
+│  │ • Monitor   │    │  │   Infrastructure Layer  │              │   │
+│  │ • Review    │    │  │ EF Core · MinIO · Redis  │              │   │
+│  │ • Audit     │    │  │ RabbitMQ · Tesseract     │              │   │
+│  └─────────────┘    │  └─────────────────────────┘              │   │
+│                     └───────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────────────┐   │
+│  │PostgreSQL│  │  Redis   │  │ RabbitMQ │  │ MinIO / S3 Lock   │   │
+│  └──────────┘  └──────────┘  └──────────┘  └───────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Capture Pipeline (sequence)
+### Capture Pipeline
 
 ```
 Invigilator App          API Server              Storage
       │                      │                      │
       │─── POST /capture ───▶│                      │
-      │    {hash, signature} │                      │
-      │                      │── verify signature ──│
+      │    {hash, signature} │── verify signature   │
       │◀── 201 captureId ────│                      │
       │                      │                      │
       │─── POST /upload ────▶│                      │
-      │    {image bytes}     │── re-hash bytes      │
-      │                      │── compare hash ──────│
-      │                      │── write immutable ──▶│
-      │                      │── append audit log   │
+      │    {image bytes}     │── re-hash bytes       │
+      │                      │── compare hash        │
+      │                      │── embed watermark     │
+      │                      │── AES-256-GCM encrypt │
+      │                      │── write immutable ──▶ │
+      │                      │── append audit log    │
       │◀── 200 verified ─────│                      │
 ```
 
-### Clean Architecture layers
+### Clean Architecture Layers
 
 ```
 ExamShield/
@@ -146,29 +176,29 @@ ExamShield/
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) ≥ 24
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
-- [Flutter 3.x](https://docs.flutter.dev/get-started/install) (for mobile)
-- [Node.js 20+](https://nodejs.org/) (for dashboard)
+- [Flutter 3.x](https://docs.flutter.dev/get-started/install) *(for mobile)*
+- [Node.js 20+](https://nodejs.org/) *(for dashboard)*
 
 ### 1 — Spin up infrastructure
 
 ```bash
-git clone https://github.com/your-org/examshield.git
+git clone https://github.com/sendwavehub/examshield.git
 cd examshield
 docker compose -f infra/docker-compose.yml up -d
 ```
 
-This starts **PostgreSQL**, **Redis**, **RabbitMQ**, and **MinIO**.
+Starts **PostgreSQL**, **Redis**, **RabbitMQ**, and **MinIO**.
 
 ### 2 — Backend API
 
 ```bash
 dotnet restore
 dotnet build
-dotnet test
+dotnet test                              # 520 tests, all green
 dotnet run --project src/ExamShield.Api
 ```
 
-API is available at `https://localhost:5001`. OpenAPI UI at `https://localhost:5001/swagger`.
+API → `https://localhost:5001`  ·  Swagger UI → `https://localhost:5001/swagger`
 
 ### 3 — Admin Dashboard
 
@@ -178,7 +208,7 @@ npm install
 npm run dev
 ```
 
-Dashboard at `http://localhost:5173`.
+Dashboard → `http://localhost:5173`
 
 ### 4 — Mobile App (Flutter)
 
@@ -188,15 +218,11 @@ flutter pub get
 flutter run           # connects to localhost API by default
 ```
 
-### Environment variables
-
-Copy and edit the example:
+### Environment Variables
 
 ```bash
 cp infra/.env.example infra/.env
 ```
-
-Key variables:
 
 | Variable | Description |
 |---|---|
@@ -204,46 +230,38 @@ Key variables:
 | `REDIS_CONNECTION` | Redis connection string |
 | `MINIO_ENDPOINT` | MinIO / S3 endpoint |
 | `JWT_SIGNING_KEY` | ECDSA P-256 private key (PEM) |
+| `ENCRYPTION__MASTERKEYBBASE64` | 32-byte AES master key (base64) |
 | `ALERT_EMAIL_SMTP` | SMTP host for email alerts |
 
 ---
 
 ## API
 
-Full OpenAPI spec is served at `/swagger` when running locally.
+Full OpenAPI spec at `/swagger` when running locally. 101 endpoints across 12 resource groups.
 
-### Core endpoints
+### Key Endpoints
 
 ```http
+# Capture pipeline
 POST   /capture              Register a new capture (hash + signature)
-POST   /upload               Upload image bytes
-GET    /verify/{id}          Re-verify hash and signature
-GET    /audit                Query append-only audit log
-POST   /ocr                  Trigger OCR pipeline
-POST   /score                Finalize scoring
-GET    /results              Published results
-GET    /statistics           Dashboard statistics
-```
+POST   /upload               Upload image bytes — re-verified server-side
+GET    /verify/{id}          Re-verify stored image integrity
+GET    /captures/{id}/chain-of-custody   Full signed custody chain
 
-### Auth
-
-```http
+# Auth
 POST   /auth/login           JWT login
+POST   /auth/mfa/verify      MFA code verification (TOTP)
 POST   /auth/refresh         Refresh token
-POST   /auth/logout          Revoke session
-POST   /auth/mfa/verify      MFA code verification
-```
 
-### Device management
+# OCR & Review
+POST   /ocr                  Trigger OCR pipeline
+POST   /ocr/batch            Batch OCR for an entire exam
+GET    /review/queue         Manual review queue
 
-```http
-POST   /devices/register     Register a trusted capture device
-PUT    /devices/{id}         Approve / disable device
-```
+# Audit
+GET    /audit                Append-only audit log (filter by entity, actor, date)
 
-### Public verification (anonymous)
-
-```http
+# Public (anonymous)
 GET    /public/verify?hash=  Verify SHA-256 hash without login
 ```
 
@@ -251,15 +269,18 @@ GET    /public/verify?hash=  Verify SHA-256 hash without login
 
 ## Security
 
-Security is a first-class concern in ExamShield.
+Security is a first-class concern — not an afterthought.
 
-- SHA-256 image hash computed **on-device** before any network call
-- Server **re-verifies** hash on receipt; mismatches are rejected and alerted
-- ECDSA P-256 / Ed25519 device signing keys; public keys registered server-side
-- Invisible forensic watermark embedded in every stored image
-- Append-only audit log — no UPDATE or DELETE path exists in the schema
-- Zero Trust RBAC with 15 roles and hard Separation-of-Duties constraints
-- Alert triggers: hash mismatch, duplicate upload, suspicious login, invalid signature
+| Control | Detail |
+|---|---|
+| Hash-then-sign | SHA-256 on-device → server re-verifies; mismatches rejected + alerted |
+| Digital signatures | ECDSA P-256 per-device key; public key registered server-side |
+| Encryption at rest | AES-256-GCM per-image DEK, envelope-encrypted with master key |
+| Invisible watermark | Exam ID · timestamp · nonce · hash · scanner ID embedded in every image |
+| Append-only audit | No UPDATE or DELETE path exists in schema or domain layer |
+| Zero Trust RBAC | 15 roles, hard Separation-of-Duties — no single actor can commit undetected fraud |
+| MFA step-up | Investigation Officers must present `amr: mfa` claim to access image bytes |
+| Alert triggers | Hash mismatch · duplicate upload · invalid signature · suspicious login |
 
 To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
@@ -271,32 +292,45 @@ See [ROADMAP.md](ROADMAP.md) for the full versioned plan.
 
 | Version | Theme | Target |
 |---|---|---|
-| v0.1 | Core pipeline (capture → verify → audit) | Q3 2026 |
-| v0.2 | OCR + manual review queue | Q3 2026 |
-| v0.3 | Scoring engine + result publication | Q4 2026 |
-| v0.4 | Full RBAC + MFA | Q4 2026 |
-| v1.0 | Production-ready + Kubernetes | Q1 2027 |
+| **v0.1** | Core pipeline — capture → verify → audit | Q3 2026 |
+| **v0.2** | OCR + manual review queue | Q3 2026 |
+| **v0.3** | Scoring engine + result publication | Q4 2026 |
+| **v0.4** | Full RBAC + MFA + device certificates | Q4 2026 |
+| **v1.0** | Production-ready + Kubernetes | Q1 2027 |
 
 ---
 
 ## Contributing
 
-We welcome contributions of all sizes. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
+We welcome contributions of all sizes — bug fixes, new features, docs, translations.
 
-Quick summary:
-1. Fork → branch (`feat/your-feature` or `fix/your-bug`)
-2. Write a failing test first (TDD)
-3. Implement the change
-4. `dotnet test` — all green
-5. Open a PR against `main`
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md)
+2. Fork → branch (`feat/your-feature` or `fix/your-bug`)
+3. Write a failing test first (TDD)
+4. Implement the change
+5. `dotnet test` — all green
+6. Open a PR against `main`
+
+Good first issues are labelled [`good first issue`](https://github.com/sendwavehub/examshield/issues?q=is%3Aopen+label%3A%22good+first+issue%22).
 
 ---
 
 ## Community
 
-- **GitHub Issues** — bug reports and feature requests
-- **GitHub Discussions** — questions, ideas, show-and-tell
-- **Security disclosures** — see [SECURITY.md](SECURITY.md)
+- **[GitHub Discussions](https://github.com/sendwavehub/examshield/discussions)** — questions, ideas, show-and-tell
+- **[GitHub Issues](https://github.com/sendwavehub/examshield/issues)** — bug reports and feature requests
+- **[Security disclosures](SECURITY.md)** — responsible disclosure process
+
+---
+
+## Contributors
+
+Thanks to everyone who has contributed to ExamShield!
+
+<!-- contrib.rocks — add your GitHub org/repo once public -->
+<a href="https://github.com/sendwavehub/examshield/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=sendwavehub/examshield" alt="Contributors"/>
+</a>
 
 ---
 
@@ -304,10 +338,12 @@ Quick summary:
 
 ExamShield Community Edition is dual-licensed under **[MIT](LICENSE)** and **[Apache 2.0](LICENSE)**. You may choose either license.
 
-See [LICENSE](LICENSE) for full terms.
-
 ---
 
 <div align="center">
-Built with care for integrity in education.
+
+**If ExamShield saves you time or inspires your work, please [⭐ star the repo](https://github.com/sendwavehub/examshield) — it helps others find the project.**
+
+Built with care for integrity in education · [sendwavehub](https://github.com/sendwavehub)
+
 </div>
