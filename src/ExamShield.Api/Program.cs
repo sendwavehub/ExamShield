@@ -253,6 +253,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     }
 });
 
+app.MapSetupEndpoints();
 app.MapAuthEndpoints();
 app.MapDeviceEndpoints();
 app.MapCaptureEndpoints();

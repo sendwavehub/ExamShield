@@ -2,6 +2,7 @@ using ExamShield.Application.Interfaces;
 using ExamShield.Domain.Interfaces;
 using ExamShield.Infrastructure.Alerts;
 using ExamShield.Infrastructure.Cache;
+using ExamShield.Infrastructure.Health;
 using ExamShield.Infrastructure.HealthChecks;
 using ExamShield.Infrastructure.Messaging;
 using ExamShield.Infrastructure.OCR;
@@ -120,6 +121,8 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient("Alerts");
         services.AddSingleton<IAlertService, AlertService>();
         services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
+        services.AddScoped<ISystemHealthService, SystemHealthService>();
 
         var hc = services.AddHealthChecks()
             .AddCheck<DbContextHealthCheck>("postgres");

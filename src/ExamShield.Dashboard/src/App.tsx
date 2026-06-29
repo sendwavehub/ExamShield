@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from './hooks/useAuth'
+import { useSetupStatus } from './hooks/useSetupStatus'
+import SetupPage from './pages/SetupPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import AuditLogPage from './pages/AuditLogPage'
@@ -38,6 +40,8 @@ function LiveDashboard() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
+  const { status } = useSetupStatus()
+  if (status?.isFirstRun) return <Navigate to="/setup" replace />
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
 
@@ -59,6 +63,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          <Route path="/setup" element={<SetupPage />} />
           <Route
             path="/login"
             element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage onLogin={login} onMfaLogin={completeMfaLogin} requiresMfa={requiresMfa} />}

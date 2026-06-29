@@ -67,6 +67,24 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export interface SetupStatusResponse {
+  isFirstRun: boolean
+  version: string
+  checks: Record<string, string>
+}
+
+export interface CompleteSetupPayload {
+  adminEmail: string
+  adminDisplayName: string
+  adminPassword: string
+  seedDemoData: boolean
+}
+
+export interface CompleteSetupResponse {
+  adminUserId: string
+  message: string
+}
+
 export interface LoginResponse { token: string; refreshToken: string; role: string; requiresMfa: boolean }
 export interface DashboardStats {
   totalCaptures: number
@@ -128,6 +146,14 @@ export interface LoginHistoryEntry {
 export interface LoginHistoryResponse { events: LoginHistoryEntry[] }
 
 export const api = {
+  getSetupStatus: () => request<SetupStatusResponse>('/setup/status'),
+
+  completeSetup: (payload: CompleteSetupPayload) =>
+    request<CompleteSetupResponse>('/setup/complete', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
   login: (email: string, password: string) =>
     request<LoginResponse>('/auth/login', {
       method: 'POST',
