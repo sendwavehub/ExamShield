@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import SettingsPage from '../pages/SettingsPage'
@@ -8,6 +9,9 @@ vi.mock('../api/client', () => ({
   api: {
     getSettings: vi.fn(),
     updateSettings: vi.fn(),
+    getNotificationChannelSettings: vi.fn(),
+    updateNotificationChannelSettings: vi.fn(),
+    testAlert: vi.fn(),
   },
 }))
 
@@ -17,6 +21,14 @@ const mockSettings = {
   notificationSeverity: 'High',
   accessTokenExpiryMinutes: 60,
   refreshTokenExpiryDays: 7,
+}
+
+const mockChannels = {
+  emailEnabled: false,   emailRecipients: null,
+  slackEnabled: false,   slackWebhookUrl: null,
+  lineEnabled: false,    lineNotifyToken: null,
+  webhookEnabled: false, webhookUrl: null,
+  updatedAt: '2026-06-29T00:00:00Z',
 }
 
 function renderPage() {
@@ -31,9 +43,12 @@ function renderPage() {
 beforeEach(() => {
   vi.mocked(apiClient.api.getSettings).mockResolvedValue(mockSettings)
   vi.mocked(apiClient.api.updateSettings).mockResolvedValue(mockSettings)
+  vi.mocked(apiClient.api.getNotificationChannelSettings).mockResolvedValue(mockChannels)
+  vi.mocked(apiClient.api.updateNotificationChannelSettings).mockResolvedValue({ ...mockChannels, emailEnabled: true })
+  vi.mocked(apiClient.api.testAlert).mockResolvedValue({ sent: true, error: null })
 })
 
-describe('SettingsPage', () => {
+describe('SettingsPage — core settings', () => {
   it('renders page heading', async () => {
     renderPage()
     expect(await screen.findByRole('heading', { name: /settings/i })).toBeInTheDocument()
@@ -88,5 +103,77 @@ describe('SettingsPage', () => {
     await screen.findByRole('button', { name: /save settings/i })
     fireEvent.click(screen.getByRole('button', { name: /save settings/i }))
     expect(await screen.findByText(/saved/i)).toBeInTheDocument()
+  })
+})
+
+describe('SettingsPage — notification channels', () => {
+  it('shows Alert Channels section heading', async () => {
+    renderPage()
+    expect(await screen.findByText(/alert channels/i)).toBeInTheDocument()
+  })
+
+  it('shows Email, Slack, LINE and Webhook channel toggles', async () => {
+    renderPage()
+    expect(await screen.findByText(/alert channels/i))
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/slack/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/line notify/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/generic webhook/i)).toBeInTheDocument()
+  })
+
+  it('shows recipients field when Email is toggled on', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText(/alert channels/i)
+    await user.click(screen.getByLabelText(/email/i))
+    expect(await screen.findByPlaceholderText(/ops@example\.com/i)).toBeInTheDocument()
+  })
+
+  it('shows webhook URL field when Slack is toggled on', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText(/alert channels/i)
+    await user.click(screen.getByLabelText(/slack/i))
+    expect(await screen.findByPlaceholderText(/hooks\.slack\.com/i)).toBeInTheDocument()
+  })
+
+  it('calls updateNotificationChannelSettings when Save Channels is clicked', async () => {
+    renderPage()
+    expect(await screen.findByRole('button', { name: /save channels/i })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /save channels/i }))
+    await waitFor(() =>
+      expect(apiClient.api.updateNotificationChannelSettings).toHaveBeenCalled()
+    )
+  })
+
+  it('shows channel settings saved confirmation', async () => {
+    renderPage()
+    await screen.findByRole('button', { name: /save channels/i })
+    fireEvent.click(screen.getByRole('button', { name: /save channels/i }))
+    expect(await screen.findByText(/channel settings saved/i)).toBeInTheDocument()
+  })
+
+  it('shows Send Test Alert button', async () => {
+    renderPage()
+    expect(await screen.findByRole('button', { name: /send test alert/i })).toBeInTheDocument()
+  })
+
+  it('calls testAlert when Send Test Alert is clicked', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /send test alert/i }))
+    await waitFor(() => expect(apiClient.api.testAlert).toHaveBeenCalled())
+  })
+
+  it('shows success message after test alert is sent', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /send test alert/i }))
+    expect(await screen.findByText(/test alert sent successfully/i)).toBeInTheDocument()
+  })
+
+  it('shows failure message when test alert fails', async () => {
+    vi.mocked(apiClient.api.testAlert).mockResolvedValue({ sent: false, error: 'SMTP unreachable' })
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /send test alert/i }))
+    expect(await screen.findByText(/smtp unreachable/i)).toBeInTheDocument()
   })
 })

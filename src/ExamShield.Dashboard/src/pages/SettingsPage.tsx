@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSettings, useUpdateSettings, useTestAlert } from '../hooks/useSettings'
 import { api, type NotificationChannelSettingsPayload } from '../api/client'
@@ -18,17 +18,21 @@ function ChannelRow({ label, enabled, onToggle, children }: {
   onToggle: (v: boolean) => void
   children?: React.ReactNode
 }) {
+  const id = `channel-${label.toLowerCase().replace(/\s+/g, '-')}`
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
-      <label className="flex items-center gap-3 cursor-pointer">
+      <div className="flex items-center gap-3">
         <input
+          id={id}
           type="checkbox"
           checked={enabled}
           onChange={e => onToggle(e.target.checked)}
-          className="h-4 w-4 rounded"
+          className="h-4 w-4 rounded cursor-pointer"
         />
-        <span className="text-sm font-medium text-foreground">{label}</span>
-      </label>
+        <label htmlFor={id} className="text-sm font-medium text-foreground cursor-pointer">
+          {label}
+        </label>
+      </div>
       {enabled && children}
     </div>
   )
@@ -65,14 +69,18 @@ function NotificationChannelSection() {
   const [channels, setChannels] = useState<NotificationChannelSettingsPayload>(DEFAULT_CHANNELS)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const initialized = useRef(false)
 
   useEffect(() => {
-    if (data) setChannels({
-      emailEnabled:   data.emailEnabled,   emailRecipients:  data.emailRecipients,
-      slackEnabled:   data.slackEnabled,   slackWebhookUrl:  data.slackWebhookUrl,
-      lineEnabled:    data.lineEnabled,    lineNotifyToken:  data.lineNotifyToken,
-      webhookEnabled: data.webhookEnabled, webhookUrl:       data.webhookUrl,
-    })
+    if (data && !initialized.current) {
+      initialized.current = true
+      setChannels({
+        emailEnabled:   data.emailEnabled,   emailRecipients:  data.emailRecipients,
+        slackEnabled:   data.slackEnabled,   slackWebhookUrl:  data.slackWebhookUrl,
+        lineEnabled:    data.lineEnabled,    lineNotifyToken:  data.lineNotifyToken,
+        webhookEnabled: data.webhookEnabled, webhookUrl:       data.webhookUrl,
+      })
+    }
   }, [data])
 
   const { mutate: save, isPending } = useMutation({
