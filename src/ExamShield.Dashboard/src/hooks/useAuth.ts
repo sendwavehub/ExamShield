@@ -1,6 +1,14 @@
 import { useState, useCallback } from 'react'
 import { api } from '../api/client'
 
+function parseJwt(token: string): Record<string, unknown> {
+  try {
+    return JSON.parse(atob(token.split('.')[1]))
+  } catch {
+    return {}
+  }
+}
+
 export type AuthStep = 'idle' | 'mfa_required'
 
 export interface AuthState {
@@ -60,6 +68,7 @@ export function useAuth() {
     setAuth({ token: null, role: null, step: 'idle', pendingCredentials: null })
   }, [])
 
+  const decoded = auth.token ? parseJwt(auth.token) : {}
   return {
     auth,
     login,
@@ -68,5 +77,8 @@ export function useAuth() {
     logout,
     isAuthenticated: !!auth.token,
     requiresMfa: auth.step === 'mfa_required',
+    email: (decoded.email as string | undefined) ?? null,
+    expiresAt: decoded.exp ? new Date((decoded.exp as number) * 1000) : null,
+    hasMfa: decoded.amr === 'mfa',
   }
 }

@@ -27,6 +27,9 @@ import AnswerSheetsPage from './pages/AnswerSheetsPage'
 import RankingsPage from './pages/RankingsPage'
 import SessionManagementPage from './pages/SessionManagementPage'
 import ReviewRequestsPage from './pages/ReviewRequestsPage'
+import PipelineDemoPage from './pages/PipelineDemoPage'
+import ProfilePage from './pages/ProfilePage'
+import ChangePasswordPage from './pages/ChangePasswordPage'
 import AppLayout from './components/layout/AppLayout'
 import { useNotifications } from './hooks/useNotifications'
 import NotificationToast from './components/ui/NotificationToast'
@@ -51,7 +54,7 @@ function NotificationsOverlay() {
 }
 
 export default function App() {
-  const { isAuthenticated, login, completeMfaLogin, requiresMfa, auth, logout } = useAuth()
+  const { isAuthenticated, login, completeMfaLogin, requiresMfa, auth, logout, email, expiresAt, hasMfa } = useAuth()
 
   useEffect(() => {
     const handle = () => logout()
@@ -75,7 +78,13 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <NotificationsOverlay />
-                <AppLayout userName={auth.role ?? 'User'}>
+                <AppLayout
+                  userName={auth.role ?? 'User'}
+                  userEmail={email}
+                  hasMfa={hasMfa}
+                  expiresAt={expiresAt}
+                  onLogout={logout}
+                >
                   <Routes>
                     <Route path="/" element={<LiveDashboard />} />
                     <Route path="/audit" element={<AuditLogPage />} />
@@ -97,6 +106,9 @@ export default function App() {
                     <Route path="/answer-sheets" element={<AnswerSheetsPage />} />
                     <Route path="/student" element={<StudentPortalPage />} />
                     <Route path="/review-requests" element={<ReviewRequestsPage />} />
+                    <Route path="/pipeline" element={<PipelineDemoPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/change-password" element={<ChangePasswordPage />} />
                   </Routes>
                 </AppLayout>
               </ProtectedRoute>

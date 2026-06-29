@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, Shield, Monitor, ChevronLeft, Bell, User, Menu,
   ClipboardList, ScanLine, Eye, Star, BarChart2, Users, Settings, Search, ShieldCheck,
   BookOpen, KeyRound, FileImage, Trophy, MonitorSmartphone, MessageSquareWarning,
-  Zap,
+  Zap, PlayCircle,
 } from 'lucide-react'
-import { cn } from '../../lib/utils'
+import { cn, getInitials } from '../../lib/utils'
+import { useNotifications } from '../../hooks/useNotifications'
+import NotificationPanel from '../ui/NotificationPanel'
+import UserPanel from '../ui/UserPanel'
 
 const NAV_GROUPS = [
   {
@@ -50,16 +53,31 @@ const NAV_GROUPS = [
       { label: 'Public Verify',     href: '/public/verify', icon: Search           },
     ],
   },
+  {
+    label: 'Showcase',
+    items: [
+      { label: 'Pipeline Demo',     href: '/pipeline',      icon: PlayCircle       },
+    ],
+  },
 ]
 
 interface AppLayoutProps {
   userName: string
+  userEmail?: string | null
+  hasMfa?: boolean
+  expiresAt?: Date | null
+  onLogout: () => void
   children: React.ReactNode
 }
 
-export default function AppLayout({ userName, children }: AppLayoutProps) {
+export default function AppLayout({ userName, userEmail, hasMfa, expiresAt, onLogout, children }: AppLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [userPanelOpen, setUserPanelOpen] = useState(false)
+  const bellRef = useRef<HTMLButtonElement>(null)
+  const userRef = useRef<HTMLButtonElement>(null)
   const location = useLocation()
+  const { notifications, dismiss, clearAll } = useNotifications()
 
   const isActive = (href: string) =>
     href === '/' ? location.pathname === '/' : location.pathname.startsWith(href)
@@ -175,23 +193,66 @@ export default function AppLayout({ userName, children }: AppLayoutProps) {
 
           <div className="flex items-center gap-3">
             {/* Notification bell */}
-            <button
-              aria-label="Notifications"
-              className="relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-            >
-              <Bell className="h-4 w-4 stroke-[1.75]" />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-            </button>
+            <div className="relative">
+              <button
+                ref={bellRef}
+                aria-label="Notifications"
+                aria-expanded={notifOpen}
+                onClick={() => setNotifOpen(o => !o)}
+                className={cn(
+                  'relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+                  notifOpen
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                )}
+              >
+                <Bell className="h-4 w-4 stroke-[1.75]" />
+                {notifications.length > 0 && (
+                  <span className="absolute right-1.5 top-1.5 flex h-2 w-2 items-center justify-center rounded-full bg-primary ring-2 ring-background">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+                  </span>
+                )}
+              </button>
+              <NotificationPanel
+                open={notifOpen}
+                anchorRef={bellRef}
+                notifications={notifications}
+                onDismiss={dismiss}
+                onClearAll={clearAll}
+                onClose={() => setNotifOpen(false)}
+              />
+            </div>
 
             {/* Divider */}
             <div className="h-5 w-px bg-border" />
 
             {/* User */}
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-[#78A6FF]/30 ring-1 ring-white/10">
-                <User className="h-3.5 w-3.5 text-primary" />
-              </div>
-              <span className="hidden text-sm font-medium text-foreground sm:block">{userName}</span>
+            <div className="relative">
+              <button
+                ref={userRef}
+                aria-label="User menu"
+                aria-expanded={userPanelOpen}
+                onClick={() => setUserPanelOpen(o => !o)}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition-colors',
+                  userPanelOpen ? 'bg-primary/15' : 'hover:bg-muted/50'
+                )}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-[#78A6FF]/30 ring-1 ring-white/10 text-xs font-bold text-primary select-none">
+                  {getInitials(userName)}
+                </div>
+                <span className="hidden text-sm font-medium text-foreground sm:block">{userName}</span>
+              </button>
+              <UserPanel
+                open={userPanelOpen}
+                anchorRef={userRef}
+                userName={userName}
+                userEmail={userEmail}
+                hasMfa={hasMfa}
+                expiresAt={expiresAt}
+                onLogout={onLogout}
+                onClose={() => setUserPanelOpen(false)}
+              />
             </div>
           </div>
         </header>

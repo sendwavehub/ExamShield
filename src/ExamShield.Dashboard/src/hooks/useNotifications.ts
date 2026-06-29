@@ -45,5 +45,7 @@ export function useNotifications(maxHistory = 50) {
   const dismiss = (index: number) =>
     setNotifications(prev => prev.filter((_, i) => i !== index))
 
-  return { notifications, dismiss }
+  const clearAll = () => setNotifications([])
+
+  return { notifications, dismiss, clearAll }
 }

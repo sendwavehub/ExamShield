@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ExamShield — Secure Exam Pipeline</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" />
+  <style>
+    /* ── Brand ────────────────────────────────────────────── */
+    :root {
+      --brand:   #4F8EF7;
+      --cyan:    #22D3EE;
+      --green:   #22C55E;
+      --red:     #EF4444;
+      --amber:   #F59E0B;
+      --purple:  #A78BFA;
+      --glass:   rgba(255,255,255,0.05);
+      --border:  rgba(255,255,255,0.10);
+    }
+
+    .reveal { font-family: 'Segoe UI', system-ui, sans-serif; }
+    .reveal .slides section { text-align: left; }
+    .reveal h1, .reveal h2, .reveal h3 { color: #fff; font-weight: 700; letter-spacing: -0.02em; }
+    .reveal h1 { font-size: 2.4em; }
+    .reveal h2 { font-size: 1.7em; color: var(--cyan); }
+    .reveal h3 { font-size: 1.1em; color: var(--brand); }
+    .reveal p, .reveal li { color: rgba(255,255,255,0.80); line-height: 1.6; }
+    .reveal code { font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: 0.85em; }
+    .reveal pre { border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+    .reveal .slide-number { color: rgba(255,255,255,0.35); }
+
+    /* ── Layout helpers ───────────────────────────────────── */
+    .cols-2  { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+    .cols-3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    .card    {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem 1.2rem;
+      backdrop-filter: blur(8px);
+    }
+    .tag {
+      display: inline-flex; align-items: center; gap: .3rem;
+      font-size: .62em; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      padding: .2em .6em; border-radius: 99px; border: 1px solid;
+    }
+    .tag-blue   { background: rgba(79,142,247,.15); color: #7BBFFF; border-color: rgba(79,142,247,.35); }
+    .tag-cyan   { background: rgba(34,211,238,.15); color: #5EEAD4; border-color: rgba(34,211,238,.35); }
+    .tag-green  { background: rgba(34,197,94,.15);  color: #4ADE80; border-color: rgba(34,197,94,.35); }
+    .tag-purple { background: rgba(167,139,250,.15);color: #C4B5FD; border-color: rgba(167,139,250,.35); }
+    .tag-orange { background: rgba(251,146,60,.15); color: #FCA26B; border-color: rgba(251,146,60,.35); }
+    .tag-amber  { background: rgba(245,158,11,.15); color: #FDE047; border-color: rgba(245,158,11,.35); }
+    .tag-red    { background: rgba(239,68,68,.15);  color: #FCA5A5; border-color: rgba(239,68,68,.35); }
+    .tag-teal   { background: rgba(20,184,166,.15); color: #5EEAD4; border-color: rgba(20,184,166,.35); }
+
+    .badge-role {
+      display: inline-flex; align-items: center; gap: .3em;
+      font-size: .58em; padding: .2em .7em; border-radius: 99px;
+      font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    }
+
+    .pill-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .45rem; }
+    .pill-list li { display: flex; align-items: flex-start; gap: .55rem; font-size: .82em; color: rgba(255,255,255,.80); }
+    .pill-list li::before { content: ''; flex-shrink: 0; margin-top: .45em; height: 6px; width: 6px; border-radius: 50%; background: var(--green); }
+
+    .alert-list li::before { background: var(--red); }
+    .info-list  li::before { background: var(--brand); }
+
+    .mono { font-family: 'Fira Code', monospace; font-size: .80em; color: var(--cyan); }
+
+    /* ── Pipeline diagram ─────────────────────────────────── */
+    .pipeline-flow {
+      display: flex; align-items: center; flex-wrap: nowrap;
+      gap: 0; overflow-x: auto; padding: .5rem 0;
+    }
+    .p-node {
+      display: flex; flex-direction: column; align-items: center;
+      gap: .35rem; padding: .5rem .7rem; min-width: 72px;
+      border-radius: 12px; transition: background .2s;
+    }
+    .p-node-icon {
+      display: flex; align-items: center; justify-content: center;
+      height: 40px; width: 40px; border-radius: 10px;
+      background: rgba(79,142,247,.15); border: 1px solid rgba(79,142,247,.3);
+      font-size: 1.1em;
+    }
+    .p-node-label { font-size: .55em; font-weight: 600; color: rgba(255,255,255,.65); white-space: nowrap; }
+    .p-arrow { color: rgba(255,255,255,.25); font-size: 1em; flex-shrink: 0; }
+
+    /* ── Stage slide header ───────────────────────────────── */
+    .stage-header {
+      display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem;
+    }
+    .stage-icon {
+      display: flex; align-items: center; justify-content: center;
+      height: 52px; width: 52px; border-radius: 14px; flex-shrink: 0;
+      font-size: 1.4em;
+      background: rgba(79,142,247,.15); border: 1px solid rgba(79,142,247,.3);
+    }
+    .stage-meta { display: flex; flex-direction: column; gap: .2rem; }
+    .stage-num { font-size: .58em; color: rgba(255,255,255,.4); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+
+    /* ── Data flow row ────────────────────────────────────── */
+    .data-flow { display: flex; align-items: center; gap: .5rem; margin: .8rem 0; }
+    .data-box {
+      flex: 1; background: rgba(255,255,255,.04); border: 1px solid var(--border);
+      border-radius: 10px; padding: .5rem .8rem;
+    }
+    .data-box-label { font-size: .55em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.4); margin-bottom: .25rem; }
+    .data-box-val   { font-size: .70em; font-family: 'Fira Code', monospace; color: rgba(255,255,255,.80); }
+    .data-arrow { color: rgba(255,255,255,.3); font-size: 1.1em; flex-shrink: 0; }
+
+    /* ── Invariants ───────────────────────────────────────── */
+    .invariant {
+      display: flex; align-items: flex-start; gap: .8rem;
+      background: rgba(79,142,247,.06); border: 1px solid rgba(79,142,247,.20);
+      border-radius: 10px; padding: .6rem .9rem; font-size: .72em;
+    }
+    .invariant-num { font-weight: 800; color: var(--brand); min-width: 1.4em; flex-shrink: 0; font-size: 1em; }
+    .invariant-text { color: rgba(255,255,255,.80); line-height: 1.5; }
+    .invariant-title { font-weight: 700; color: #fff; }
+
+    /* ── Role matrix ──────────────────────────────────────── */
+    .role-matrix { width: 100%; border-collapse: collapse; font-size: .60em; }
+    .role-matrix th { padding: .4rem .6rem; text-align: left; color: rgba(255,255,255,.45); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .role-matrix td { padding: .38rem .6rem; color: rgba(255,255,255,.75); border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: middle; }
+    .role-matrix tr:last-child td { border-bottom: none; }
+    .check { color: var(--green); font-size: 1.2em; }
+    .cross { color: rgba(255,255,255,.2); font-size: 1.1em; }
+    .stage-name { font-weight: 700; color: #fff; }
+
+    /* ── Tamper demo ──────────────────────────────────────── */
+    .tamper-flow { display: flex; align-items: center; gap: .6rem; margin: .8rem 0; font-size: .75em; }
+    .tamper-node {
+      flex: 1; padding: .5rem .7rem; border-radius: 10px; text-align: center;
+      font-weight: 600; border: 1px solid;
+    }
+    .tamper-ok  { background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.3); color: #4ADE80; }
+    .tamper-bad { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.4); color: #FCA5A5; }
+    .tamper-warn { background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.3); color: #FDE047; }
+    .tamper-arrow { color: rgba(255,255,255,.3); }
+
+    /* ── Chain of custody ─────────────────────────────────── */
+    .custody-timeline { display: flex; flex-direction: column; gap: .5rem; }
+    .custody-entry {
+      display: flex; align-items: flex-start; gap: .8rem;
+      background: rgba(255,255,255,.03); border: 1px solid var(--border);
+      border-radius: 10px; padding: .55rem .8rem;
+    }
+    .custody-dot { height: 8px; width: 8px; border-radius: 50%; background: var(--cyan); flex-shrink: 0; margin-top: .35em; }
+    .custody-dot.warn { background: var(--amber); }
+    .custody-content { flex: 1; }
+    .custody-event { font-size: .68em; font-weight: 700; color: #fff; }
+    .custody-meta  { font-size: .60em; color: rgba(255,255,255,.45); margin-top: .1rem; font-family: 'Fira Code', monospace; }
+
+    /* ── SoD matrix ───────────────────────────────────────── */
+    .sod-chain { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .72em; }
+    .sod-role  { padding: .3em .7em; border-radius: 8px; font-weight: 600; background: rgba(79,142,247,.12); border: 1px solid rgba(79,142,247,.25); color: #93C5FD; }
+    .sod-arrow { color: rgba(255,255,255,.3); }
+    .sod-verb  { color: rgba(255,255,255,.5); font-size: .85em; }
+
+    /* ── Slide backgrounds ────────────────────────────────── */
+    .reveal .slides section.title-slide { background: radial-gradient(ellipse at 30% 40%, rgba(79,142,247,.18) 0%, transparent 60%), radial-gradient(ellipse at 70% 60%, rgba(34,211,238,.10) 0%, transparent 50%); }
+    .title-shield { font-size: 5em; line-height: 1; filter: drop-shadow(0 0 32px rgba(79,142,247,.6)); }
+    .title-sub    { font-size: .85em; color: var(--cyan); font-weight: 600; letter-spacing: .05em; }
+    .title-tagline { font-size: .65em; color: rgba(255,255,255,.5); margin-top: .8rem; }
+
+    .highlight-box {
+      background: rgba(79,142,247,.08); border: 1px solid rgba(79,142,247,.25);
+      border-radius: 12px; padding: .7rem 1rem; font-size: .72em;
+      color: rgba(255,255,255,.80);
+    }
+    .highlight-box strong { color: var(--cyan); }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 1 — Title
+══════════════════════════════════════════════════ -->
+<section class="title-slide" data-transition="fade">
+  <div style="text-align:center; padding-top:1.5rem;">
+    <div class="title-shield">🛡️</div>
+    <h1 style="margin-top:.5rem;">ExamShield</h1>
+    <p class="title-sub">Zero-Trust Secure Exam Scanning Pipeline</p>
+    <p class="title-tagline">Capture · Hash · Sign · Verify · Watermark · Encrypt · OCR · Review · Score · Publish</p>
+    <div style="display:flex; justify-content:center; gap:.7rem; margin-top:1.5rem; flex-wrap:wrap;">
+      <span class="tag tag-blue">ASP.NET Core 9</span>
+      <span class="tag tag-purple">Flutter Mobile</span>
+      <span class="tag tag-cyan">React Dashboard</span>
+      <span class="tag tag-green">ECDSA Signatures</span>
+      <span class="tag tag-orange">AES-256-GCM</span>
+    </div>
+  </div>
+  <aside class="notes">
+    ExamShield is an enterprise-grade, AI-powered secure exam scanning system.
+    This presentation walks through the full 11-stage pipeline — from the moment
+    an invigilator photographs an answer sheet to the moment results are published.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 2 — The Problem
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <h2>The Problem</h2>
+  <div class="cols-2" style="margin-top:1rem;">
+    <div>
+      <h3>Paper Exam Risks Today</h3>
+      <ul class="pill-list alert-list" style="margin-top:.6rem;">
+        <li>Answer sheets photographed or replaced after the exam</li>
+        <li>OCR results edited before scoring</li>
+        <li>No cryptographic proof of when a photo was taken</li>
+        <li>No audit trail linking device → invigilator → sheet → score</li>
+        <li>Human reviewer can silently "correct" OCR answers</li>
+        <li>Results can be modified before publication</li>
+      </ul>
+    </div>
+    <div>
+      <h3>What's Missing</h3>
+      <ul class="pill-list info-list" style="margin-top:.6rem;">
+        <li>On-device cryptographic commitment of the image</li>
+        <li>Server-side independent verification</li>
+        <li>Immutable append-only evidence chain</li>
+        <li>Role separation — capture ≠ review ≠ score ≠ publish</li>
+        <li>Encryption at rest — storage access yields only ciphertext</li>
+        <li>Anonymous public verification of any result</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    Traditional paper exam workflows have no digital chain of custody.
+    ExamShield solves this with cryptographic commitments at every stage.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 3 — Pipeline Overview
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <h2>Pipeline Overview</h2>
+  <p style="font-size:.72em; color:rgba(255,255,255,.55); margin-top:-.3rem;">11 stages — every transition signed, logged, and verified</p>
+
+  <div class="pipeline-flow" style="margin-top:1.2rem;">
+    <div class="p-node"><div class="p-node-icon">📷</div><span class="p-node-label">Capture</span></div>
+    <span class="p-arrow">›</span>
+    <div class="p-node"><div class="p-node-icon">#️⃣</div><span class="p-node-label">Hash</span></div>
+    <span class="p-arrow">›</span>
+    <div class="p-node"><div class="p-node-icon">🔏</div><span class="p-node-label">Sign</span></div>
+    <span class="p-arrow">›</span>
+    <div class="p-node"><div class="p-node-icon">☁️</div><span class="p-node-label">Upload</span></div>
+    <span class="p-arrow">›</span>
+    <div class="p-node"><div class="p-node-icon">✅</div><span class="p-node-label">Verify</span></div>
+    <span class="p-arrow">›</span>
+    <div class="p-node"><div class="p-node-icon">🌊</div><span class="p-node-label">Watermark</span></div>
+    <span class="p-arrow">›</span>
+    <div class="p-node"><div class="p-node-icon">🔒</div><span class="p-node-label">Encrypt</span></div>
+    <span class="p-arrow">›</span>
+    <div class="p-node"><div class="p-node-icon">🤖</div><span class="p-node-label">OCR</span></div>
+    <span class="p-arrow">›</span>
+    <div class="p-node"><div class="p-node-icon">👁</div><span class="p-node-label">Review</span></div>
+    <span class="p-arrow">›</span>
+    <div class="p-node"><div class="p-node-icon">⭐</div><span class="p-node-label">Score</span></div>
+    <span class="p-arrow">›</span>
+    <div class="p-node"><div class="p-node-icon">📢</div><span class="p-node-label">Publish</span></div>
+  </div>
+
+  <div class="cols-3" style="margin-top:1.2rem;">
+    <div class="card">
+      <h3 style="font-size:.75em; margin-bottom:.4rem;">📱 On-Device (Mobile)</h3>
+      <p style="font-size:.65em; color:rgba(255,255,255,.6);">Capture · Hash · Sign — all crypto committed before any network call</p>
+    </div>
+    <div class="card">
+      <h3 style="font-size:.75em; margin-bottom:.4rem;">⚙️ Server Pipeline</h3>
+      <p style="font-size:.65em; color:rgba(255,255,255,.6);">Verify · Watermark · Encrypt · OCR — server independently validates everything</p>
+    </div>
+    <div class="card">
+      <h3 style="font-size:.75em; margin-bottom:.4rem;">👥 Human Roles</h3>
+      <p style="font-size:.65em; color:rgba(255,255,255,.6);">Review · Score · Publish — strictly separated; no single role spans two stages</p>
+    </div>
+  </div>
+  <aside class="notes">
+    The pipeline splits into three zones: on-device crypto (mobile), server pipeline (automated), and human roles (separated by SoD).
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 4 — Stage 1: Capture
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <div class="stage-header">
+    <div class="stage-icon">📷</div>
+    <div class="stage-meta">
+      <span class="stage-num">Stage 1 of 11</span>
+      <h2 style="margin:0;">Capture</h2>
+      <span class="tag tag-blue">Role: Invigilator</span>
+    </div>
+  </div>
+
+  <div class="data-flow">
+    <div class="data-box"><div class="data-box-label">Data In</div><div class="data-box-val">Camera preview frame</div></div>
+    <span class="data-arrow">→</span>
+    <div class="data-box"><div class="data-box-label">Data Out</div><div class="data-box-val">Raw JPEG bytes (4–8 MB)</div></div>
+    <span class="data-arrow">→</span>
+    <div class="data-box"><div class="data-box-label">Audit Event</div><div class="data-box-val mono">CAPTURE_INITIATED</div></div>
+  </div>
+
+  <ul class="pill-list" style="margin-top:.8rem;">
+    <li>Flutter app detects document edges and corrects perspective automatically</li>
+    <li>Anti-blur validation rejects low-quality frames before committing</li>
+    <li>Offline support — queued locally, synced when network is available</li>
+    <li>Invigilator cannot delete or replace an already-submitted capture</li>
+  </ul>
+
+  <div class="highlight-box" style="margin-top:1rem;">
+    The mobile app's role is <strong>capture only</strong> — the invigilator cannot view OCR results, scores, or other students' sheets. Separation of duties begins here.
+  </div>
+  <aside class="notes">
+    The Invigilator role is scoped to capture/upload and viewing their own history only.
+    They cannot access scoring, results, or other invigilators' captures.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 5 — Stage 2+3: Hash & Sign
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <div class="stage-header">
+    <div class="stage-icon">#️⃣🔏</div>
+    <div class="stage-meta">
+      <span class="stage-num">Stages 2–3 of 11</span>
+      <h2 style="margin:0;">Hash &amp; Sign</h2>
+      <span class="tag tag-purple">Role: Device Crypto (on-device)</span>
+    </div>
+  </div>
+
+  <div class="cols-2" style="margin-top:.8rem;">
+    <div>
+      <h3>Hashing</h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li>SHA-256 of raw JPEG bytes — computed before any network call</li>
+        <li>Deterministic: same bytes → same hash every time</li>
+        <li>Any post-capture modification changes the hash</li>
+      </ul>
+      <pre style="margin-top:.6rem;"><code class="language-dart">final hash = sha256.convert(imageBytes);
+// e3b0c44298fc1c149afb...
+</code></pre>
+    </div>
+    <div>
+      <h3>Signing</h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li>ECDSA P-256 or Ed25519 with device private key</li>
+        <li>Private key stored in device secure enclave — never transmitted</li>
+        <li>Signature binds <em>device identity</em> to the hash</li>
+      </ul>
+      <pre style="margin-top:.6rem;"><code class="language-dart">final sig = signer.sign(hash.bytes);
+// Device key pair registered at enrollment
+</code></pre>
+    </div>
+  </div>
+
+  <div class="highlight-box" style="margin-top:.8rem;">
+    <strong>Security invariant:</strong> the server cannot trust a hash the client claims — it re-computes independently. If they differ, the upload is permanently rejected.
+  </div>
+  <aside class="notes">
+    The hash-then-sign pattern is the core cryptographic anchor of the whole pipeline.
+    SHA-256 commits the image content; ECDSA binds the device identity to that commitment.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 6 — Stage 4+5: Upload & Verify
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <div class="stage-header">
+    <div class="stage-icon">☁️✅</div>
+    <div class="stage-meta">
+      <span class="stage-num">Stages 4–5 of 11</span>
+      <h2 style="margin:0;">Upload &amp; Verify</h2>
+      <span class="tag tag-cyan">Role: Invigilator → Server</span>
+    </div>
+  </div>
+
+  <div class="cols-2" style="margin-top:.8rem;">
+    <div>
+      <h3>Two-Phase Upload</h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li><span class="mono">POST /capture</span> — register hash, signature, metadata</li>
+        <li><span class="mono">POST /upload</span> — send image bytes</li>
+        <li>Phase 1 creates an auditable record before any bytes arrive</li>
+        <li>Retries are idempotent — same capture ID, no duplicate records</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Server Verification (critical gate)</h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li>Re-compute SHA-256 of received bytes server-side</li>
+        <li>Compare against registered hash — any mismatch → reject</li>
+        <li>Verify ECDSA signature against registered public key</li>
+        <li>Unknown device → <span class="tag tag-red" style="font-size:.85em;">403 + SECURITY_ALERT</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tamper-flow" style="margin-top:.8rem;">
+    <div class="tamper-node tamper-ok">On-device hash<br/><small>SHA-256: <span class="mono" style="font-size:.8em;">a7f3...</span></small></div>
+    <span class="tamper-arrow">→</span>
+    <div class="tamper-node tamper-warn">Modified image<br/><small style="font-size:.85em;">1 pixel changed</small></div>
+    <span class="tamper-arrow">→</span>
+    <div class="tamper-node tamper-bad">Server SHA-256<br/><small><span class="mono" style="font-size:.8em;">9c2b...</span> ≠ a7f3</small></div>
+    <span class="tamper-arrow">→</span>
+    <div class="tamper-node tamper-bad">REJECTED<br/><small>VERIFICATION_FAILED</small></div>
+  </div>
+  <aside class="notes">
+    The two-phase upload prevents orphaned uploads and makes every transfer auditable.
+    The verification gate is the most critical security check in the pipeline.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 7 — Stage 6+7: Watermark & Encrypt
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <div class="stage-header">
+    <div class="stage-icon">🌊🔒</div>
+    <div class="stage-meta">
+      <span class="stage-num">Stages 6–7 of 11</span>
+      <h2 style="margin:0;">Watermark &amp; Encrypt</h2>
+      <span class="tag tag-teal">Role: Server Pipeline</span>
+    </div>
+  </div>
+
+  <div class="cols-2" style="margin-top:.8rem;">
+    <div>
+      <h3>Invisible Watermark</h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li>Steganographic — imperceptible to the human eye</li>
+        <li>Encodes: examId, timestamp, nonce, original hash, deviceId</li>
+        <li>Forensic tools extract + validate the embedded payload</li>
+        <li>Watermark destruction = tampering signal</li>
+      </ul>
+    </div>
+    <div>
+      <h3>AES-256-GCM Encryption at Rest</h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li>Fresh 256-bit DEK generated per image at upload</li>
+        <li>DEK is envelope-encrypted with master key (KMS/Vault in prod)</li>
+        <li>Ciphertext + encrypted DEK stored in MinIO / S3</li>
+        <li>Direct object storage access → ciphertext only</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:.8rem; font-size:.68em;">
+    <strong style="color:var(--cyan);">Key hierarchy:</strong>
+    <span style="font-family:monospace; color:rgba(255,255,255,.7);"> ImageBytes → AES-256-GCM(DEK) → Ciphertext </span>
+    <span style="color:rgba(255,255,255,.4);">‖</span>
+    <span style="font-family:monospace; color:rgba(255,255,255,.7);"> DEK → AES-256-GCM(MasterKey) → EncryptedDEK </span>
+    <span style="color:rgba(255,255,255,.4);">(stored in DB)</span>
+  </div>
+  <aside class="notes">
+    Two independent post-verification protections: watermarking catches downstream pixel-level tampering,
+    encryption makes raw storage access useless without the master key.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 8 — Stage 8: OCR
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <div class="stage-header">
+    <div class="stage-icon">🤖</div>
+    <div class="stage-meta">
+      <span class="stage-num">Stage 8 of 11</span>
+      <h2 style="margin:0;">OCR Pipeline</h2>
+      <span class="tag tag-amber">Role: OCR Engine (system)</span>
+    </div>
+  </div>
+
+  <div class="data-flow">
+    <div class="data-box"><div class="data-box-label">Data In</div><div class="data-box-val">Decrypted image bytes (transient)</div></div>
+    <span class="data-arrow">→</span>
+    <div class="data-box"><div class="data-box-label">Data Out</div><div class="data-box-val">Answers + confidence scores per question</div></div>
+  </div>
+
+  <div class="cols-2" style="margin-top:.8rem;">
+    <div>
+      <h3>Processing Steps</h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li>Decrypt image transiently (never stored unencrypted)</li>
+        <li>Detect bubble grid positions (OpenCV)</li>
+        <li>Extract fill-level per bubble (ML Kit / Tesseract)</li>
+        <li>Assign confidence score (0.0 – 1.0) per question</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Routing Logic</h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li>High confidence (≥ threshold) → auto-accepted</li>
+        <li>Low confidence → Manual Review queue</li>
+        <li>No answer is silently discarded or guessed</li>
+        <li>OCR Engine cannot modify the original stored image</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="highlight-box" style="margin-top:.8rem;">
+    <strong>SoD:</strong> The OCR Engine is a <em>system role</em> — it cannot publish results, influence scoring, or create exam records. Its only capability is reading images and writing OCR result records.
+  </div>
+  <aside class="notes">
+    OCR Engine is a system principal (non-human JWT) with narrowly scoped permissions.
+    The confidence routing ensures no answer is ever silently discarded.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 9 — Stage 9: Manual Review
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <div class="stage-header">
+    <div class="stage-icon">👁</div>
+    <div class="stage-meta">
+      <span class="stage-num">Stage 9 of 11</span>
+      <h2 style="margin:0;">Manual Review</h2>
+      <span class="tag tag-amber">Role: Manual Reviewer + Review Supervisor</span>
+    </div>
+  </div>
+
+  <div class="cols-2" style="margin-top:.8rem;">
+    <div>
+      <h3>What Reviewers Can Do</h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li>View the original, unmodified answer sheet image</li>
+        <li>See OCR predictions and confidence scores side-by-side</li>
+        <li>Select their interpretation of the student's answer</li>
+        <li>Escalate disputed items to Review Supervisor</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--red);">Pixel Lock — Hard Constraints</h3>
+      <ul class="pill-list alert-list" style="margin-top:.5rem;">
+        <li>Cannot paint, erase, or modify any pixel</li>
+        <li>Cannot delete or replace the original image</li>
+        <li>Cannot see another reviewer's in-progress decisions</li>
+        <li>Every decision creates an immutable audit record</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="highlight-box" style="margin-top:.8rem;">
+    <strong>Immutability guarantee:</strong> the reviewer's action only <em>appends</em> a new interpretation record — the original image and OCR result are never modified. Reviewers <em>cannot influence</em> the original evidence.
+  </div>
+  <aside class="notes">
+    The Manual Review UI enforces pixel lock at the application level.
+    The backend additionally rejects any write to Capture or OCRResult records from Reviewer-role JWTs.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 10 — Stage 10+11: Score & Publish
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <div class="stage-header">
+    <div class="stage-icon">⭐📢</div>
+    <div class="stage-meta">
+      <span class="stage-num">Stages 10–11 of 11</span>
+      <h2 style="margin:0;">Score &amp; Publish</h2>
+    </div>
+  </div>
+
+  <div class="cols-2" style="margin-top:.8rem;">
+    <div>
+      <h3><span class="tag tag-green" style="font-size:.85em;">Scoring Engine</span></h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li>Reads only finalized, confirmed answer interpretations</li>
+        <li>Compares against official answer key</li>
+        <li>Produces score, percentile, and statistics</li>
+        <li>Cannot alter answer interpretations or images</li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="tag tag-blue" style="font-size:.85em;">Result Publisher</span></h3>
+      <ul class="pill-list" style="margin-top:.5rem;">
+        <li>Triggers or schedules result release</li>
+        <li>Generates official downloadable reports</li>
+        <li>Cannot modify scores — read-only to scoring output</li>
+        <li>Publication event logged with publisher identity</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:.9rem;">
+    <p style="font-size:.65em; color:rgba(255,255,255,.55); margin-bottom:.5rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em;">Separation of Duties Chain</p>
+    <div class="sod-chain">
+      <div class="sod-role">Invigilator</div><span class="sod-verb">captures →</span>
+      <div class="sod-role">OCR Engine</div><span class="sod-verb">reads →</span>
+      <div class="sod-role">Reviewer</div><span class="sod-verb">interprets →</span>
+      <div class="sod-role">Supervisor</div><span class="sod-verb">approves →</span>
+      <div class="sod-role">Scoring Engine</div><span class="sod-verb">calculates →</span>
+      <div class="sod-role">Publisher</div><span class="sod-verb">releases</span>
+    </div>
+  </div>
+  <aside class="notes">
+    No single entity can both produce and verify any step of the pipeline.
+    The SoD chain is enforced at the authorization layer — not just by convention.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 11 — Chain of Custody
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <h2>Chain of Custody</h2>
+  <p style="font-size:.72em; color:rgba(255,255,255,.5); margin-top:-.3rem;">Every state transition is signed, timestamped, and written to an append-only audit log</p>
+
+  <div class="custody-timeline" style="margin-top:1rem;">
+    <div class="custody-entry">
+      <div class="custody-dot"></div>
+      <div class="custody-content">
+        <div class="custody-event">CAPTURE_INITIATED</div>
+        <div class="custody-meta">Actor: invigilator@school.edu · Device: D-0042 · Exam: EXAM-2024-001 · 09:14:03.441</div>
+      </div>
+    </div>
+    <div class="custody-entry">
+      <div class="custody-dot"></div>
+      <div class="custody-content">
+        <div class="custody-event">HASH_COMPUTED · SIGNATURE_CREATED</div>
+        <div class="custody-meta">hash: a7f3c2d1… · sig: 3046022100… · key: ECDSA P-256 · 09:14:03.512</div>
+      </div>
+    </div>
+    <div class="custody-entry">
+      <div class="custody-dot"></div>
+      <div class="custody-content">
+        <div class="custody-event">UPLOAD_STARTED · VERIFICATION_PASSED</div>
+        <div class="custody-meta">bytes: 5.3 MB · server-hash matches · signature verified · 09:14:05.108</div>
+      </div>
+    </div>
+    <div class="custody-entry">
+      <div class="custody-dot"></div>
+      <div class="custody-content">
+        <div class="custody-event">WATERMARK_EMBEDDED · IMAGE_ENCRYPTED</div>
+        <div class="custody-meta">DEK: [AES-256-GCM] · stored: minio/captures/CAP-8812.enc · 09:14:05.320</div>
+      </div>
+    </div>
+    <div class="custody-entry">
+      <div class="custody-dot"></div>
+      <div class="custody-content">
+        <div class="custody-event">OCR_COMPLETED → 2 questions low-confidence → REVIEW_QUEUED</div>
+        <div class="custody-meta">Q7: 0.61 · Q14: 0.58 · routed to manual review · 09:14:07.882</div>
+      </div>
+    </div>
+    <div class="custody-entry">
+      <div class="custody-dot"></div>
+      <div class="custody-content">
+        <div class="custody-event">REVIEW_SUBMITTED · REVIEW_APPROVED</div>
+        <div class="custody-meta">reviewer@school.edu · supervisor approved · 10:02:14.001</div>
+      </div>
+    </div>
+    <div class="custody-entry">
+      <div class="custody-dot"></div>
+      <div class="custody-content">
+        <div class="custody-event">SCORE_CALCULATED · RESULTS_PUBLISHED</div>
+        <div class="custody-meta">score: 87/100 · publisher@school.edu · 14:00:00.000</div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    The audit log is append-only — no record can be deleted or modified.
+    Every entry carries actor, device, timestamp, and the relevant cryptographic material.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 12 — Roles in Action
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <h2>Roles in Action</h2>
+  <p style="font-size:.72em; color:rgba(255,255,255,.5); margin-top:-.3rem;">Which role owns each pipeline stage — and what they're blocked from</p>
+
+  <table class="role-matrix" style="margin-top:.9rem;">
+    <thead>
+      <tr>
+        <th>Stage</th>
+        <th>Active Role</th>
+        <th>Can Do</th>
+        <th>Hard Block</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="stage-name">Capture</td><td><span class="tag tag-blue">Invigilator</span></td><td>Photo + submit</td><td>Delete · replace · view scores</td></tr>
+      <tr><td class="stage-name">Hash / Sign</td><td><span class="tag tag-purple">Device crypto</span></td><td>SHA-256 + ECDSA</td><td>Transmit private key</td></tr>
+      <tr><td class="stage-name">Upload</td><td><span class="tag tag-blue">Invigilator</span></td><td>POST /capture + /upload</td><td>Upload for another invigilator</td></tr>
+      <tr><td class="stage-name">Verify</td><td><span class="tag tag-cyan">Server</span></td><td>Re-hash + verify sig</td><td>Accept on mismatch</td></tr>
+      <tr><td class="stage-name">Watermark</td><td><span class="tag tag-teal">Server pipeline</span></td><td>Embed watermark</td><td>Skip or remove</td></tr>
+      <tr><td class="stage-name">Encrypt</td><td><span class="tag tag-orange">Server pipeline</span></td><td>AES-256-GCM</td><td>Store plaintext</td></tr>
+      <tr><td class="stage-name">OCR</td><td><span class="tag tag-amber">OCR Engine</span></td><td>Read + annotate</td><td>Modify original · publish</td></tr>
+      <tr><td class="stage-name">Review</td><td><span class="tag tag-amber">Reviewer</span></td><td>Interpret answer</td><td>Edit pixels · score</td></tr>
+      <tr><td class="stage-name">Score</td><td><span class="tag tag-green">Scoring Engine</span></td><td>Calculate score</td><td>Alter interpretations · publish</td></tr>
+      <tr><td class="stage-name">Publish</td><td><span class="tag tag-blue">Publisher</span></td><td>Release results</td><td>Modify scores</td></tr>
+    </tbody>
+  </table>
+  <aside class="notes">
+    The role matrix is the heart of the Zero Trust model — least privilege enforced at every stage.
+    No role can span two consecutive stages in the pipeline.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 13 — Tamper Detection
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <h2>Tamper Detection</h2>
+  <p style="font-size:.72em; color:rgba(255,255,255,.5); margin-top:-.3rem;">What happens at every attack surface</p>
+
+  <div class="cols-2" style="margin-top:1rem;">
+    <div>
+      <h3>Attack: Modified image in transit</h3>
+      <div class="tamper-flow" style="flex-direction:column; gap:.4rem; margin-top:.4rem;">
+        <div class="tamper-node tamper-ok">Original: SHA-256 = a7f3…</div>
+        <div style="color:rgba(255,255,255,.3); text-align:center;">↓ attacker modifies 1 pixel</div>
+        <div class="tamper-node tamper-bad">Server re-hash = 9c2b… ≠ a7f3</div>
+        <div class="tamper-node tamper-bad">❌ VERIFICATION_FAILED → 400 + alert</div>
+      </div>
+    </div>
+    <div>
+      <h3>Attack: Replaced stored image</h3>
+      <div class="tamper-flow" style="flex-direction:column; gap:.4rem; margin-top:.4rem;">
+        <div class="tamper-node tamper-ok">Stored watermark: examId + hash</div>
+        <div style="color:rgba(255,255,255,.3); text-align:center;">↓ attacker replaces file in MinIO</div>
+        <div class="tamper-node tamper-bad">Forensic watermark extraction: mismatch</div>
+        <div class="tamper-node tamper-bad">❌ WATERMARK_TAMPER_DETECTED → alert</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols-2" style="margin-top:.8rem;">
+    <div class="card" style="font-size:.68em;">
+      <strong style="color:var(--amber);">Attack: Unregistered device</strong><br/>
+      Signature verification fails → 403 + DEVICE_NOT_TRUSTED security event
+    </div>
+    <div class="card" style="font-size:.68em;">
+      <strong style="color:var(--amber);">Attack: Reviewer edits a pixel</strong><br/>
+      API rejects write to Capture; UI enforces pixel lock; any attempt logged as TAMPERING_ATTEMPT
+    </div>
+  </div>
+  <aside class="notes">
+    The pipeline has multiple independent detection layers — SHA-256 hash check,
+    signature verification, watermark validation, and pixel lock enforcement.
+    Every detection triggers a security alert to the Security Center.
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 14 — Security Invariants
+══════════════════════════════════════════════════ -->
+<section data-transition="slide">
+  <h2>8 Core Security Invariants</h2>
+  <p style="font-size:.72em; color:rgba(255,255,255,.5); margin-top:-.3rem;">These are never compromised — they are enforced at the domain and infrastructure layers</p>
+
+  <div style="display:flex; flex-direction:column; gap:.45rem; margin-top:.9rem;">
+    <div class="invariant">
+      <span class="invariant-num">1</span>
+      <span class="invariant-text"><span class="invariant-title">Immutability</span> — stored images and audit logs are append-only; no update or delete path exists</span>
+    </div>
+    <div class="invariant">
+      <span class="invariant-num">2</span>
+      <span class="invariant-text"><span class="invariant-title">Hash-then-Sign</span> — SHA-256 computed on-device before any network call; server re-verifies on receipt</span>
+    </div>
+    <div class="invariant">
+      <span class="invariant-num">3</span>
+      <span class="invariant-text"><span class="invariant-title">Digital Signatures</span> — every capture signed with device private key; server rejects unknown or mismatched keys</span>
+    </div>
+    <div class="invariant">
+      <span class="invariant-num">4</span>
+      <span class="invariant-text"><span class="invariant-title">Invisible Watermark</span> — embedded in every stored image; watermark destruction signals tampering</span>
+    </div>
+    <div class="invariant">
+      <span class="invariant-num">5</span>
+      <span class="invariant-text"><span class="invariant-title">Read-Only Review</span> — manual reviewers record interpretation only; original image is unmodifiable</span>
+    </div>
+    <div class="invariant">
+      <span class="invariant-num">6</span>
+      <span class="invariant-text"><span class="invariant-title">Chain of Custody</span> — every state transition signed by the responsible actor and logged</span>
+    </div>
+    <div class="invariant">
+      <span class="invariant-num">7</span>
+      <span class="invariant-text"><span class="invariant-title">Encryption at Rest</span> — AES-256-GCM per-image DEK; raw storage access yields only ciphertext</span>
+    </div>
+    <div class="invariant">
+      <span class="invariant-num">8</span>
+      <span class="invariant-text"><span class="invariant-title">Image Access Allowlist</span> — only 6 specific roles may retrieve image bytes; admins and auditors receive 403</span>
+    </div>
+  </div>
+  <aside class="notes">
+    These invariants are the non-negotiable contracts of the system.
+    They are enforced at both the domain layer (C# domain model) and the infrastructure layer
+    (EF Core, MinIO storage, authorization policies).
+  </aside>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     SLIDE 15 — Live Demo / Q&A
+══════════════════════════════════════════════════ -->
+<section class="title-slide" data-transition="fade">
+  <div style="text-align:center; padding-top:2rem;">
+    <div style="font-size:3.5em; line-height:1; filter:drop-shadow(0 0 24px rgba(34,211,238,.5));">🔬</div>
+    <h2 style="margin-top:.8rem; font-size:2em; color:var(--cyan);">Live Demo</h2>
+    <p style="font-size:.75em; color:rgba(255,255,255,.6); margin-top:.5rem;">
+      Open the dashboard and navigate to <span class="mono">Pipeline Showcase</span><br/>
+      Run a simulation · Try the Tamper Mode · Watch the audit log populate
+    </p>
+
+    <div class="cols-3" style="margin-top:1.5rem; text-align:left;">
+      <div class="card">
+        <h3 style="font-size:.75em; margin-bottom:.4rem; color:var(--green);">▶ Normal Flow</h3>
+        <p style="font-size:.62em; color:rgba(255,255,255,.55);">Watch all 11 stages complete, audit log entries turn green, chain of custody built</p>
+      </div>
+      <div class="card">
+        <h3 style="font-size:.75em; margin-bottom:.4rem; color:var(--red);">⚡ Tamper Simulation</h3>
+        <p style="font-size:.62em; color:rgba(255,255,255,.55);">Hash mismatch injected at stage 2 — see the verification gate reject and alert fire</p>
+      </div>
+      <div class="card">
+        <h3 style="font-size:.75em; margin-bottom:.4rem; color:var(--brand);">🔍 Stage Explorer</h3>
+        <p style="font-size:.62em; color:rgba(255,255,255,.55);">Click any stage node to inspect data in/out, security controls, and the audit event</p>
+      </div>
+    </div>
+
+    <div style="margin-top:2rem; display:flex; justify-content:center;">
+      <span class="tag tag-cyan" style="font-size:.8em; padding:.4em 1.2em;">Questions?</span>
+    </div>
+  </div>
+  <aside class="notes">
+    This is the live demo slide. Switch to the ExamShield dashboard,
+    navigate to Pipeline Showcase in the sidebar, and walk through the simulation live.
+  </aside>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.esm.js" type="module"></script>
+<script type="module">
+  import Reveal from 'https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.esm.js'
+  import Highlight from 'https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.esm.js'
+  import Notes from 'https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.esm.js'
+
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'slide',
+    transitionSpeed: 'default',
+    backgroundTransition: 'fade',
+    controls: true,
+    progress: true,
+    center: false,
+    width: 1280,
+    height: 720,
+    margin: 0.04,
+    plugins: [Highlight, Notes],
+  })
+</script>
+</body>
+</html>
