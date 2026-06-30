@@ -106,20 +106,20 @@ export default function UserPanel({
         right,
         width: 320,
         zIndex: 9999,
-        background: 'hsl(220 35% 13%)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        background: 'hsl(var(--card))',
+        border: '1px solid hsl(var(--border))',
         borderRadius: '1rem',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.70)',
+        boxShadow: 'var(--glass-shadow-lg)',
         overflow: 'hidden',
       }}
     >
       {/* Identity header */}
       <div
         className="px-5 py-4"
-        style={{ background: 'hsl(220 35% 11%)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'hsl(var(--background))', borderBottom: '1px solid hsl(var(--border))' }}
       >
         <div className="flex items-center gap-3 mb-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/40 to-[#78A6FF]/40 ring-1 ring-white/10 text-primary font-bold text-sm select-none">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/40 to-[#78A6FF]/40 ring-1 ring-border text-primary font-bold text-sm select-none">
             {getInitials(userName)}
           </div>
           <div className="min-w-0 flex-1">
@@ -151,7 +151,7 @@ export default function UserPanel({
       {/* Session expiry row */}
       <div
         className="flex items-center gap-2 px-5 py-2.5"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'hsl(220 35% 12%)' }}
+        style={{ borderBottom: '1px solid hsl(var(--border))', background: 'hsl(var(--muted))' }}
       >
         <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
         <span className="text-[11px] text-muted-foreground">Session expires in</span>
@@ -167,7 +167,7 @@ export default function UserPanel({
           <button
             key={item.href}
             onClick={() => navTo(item.href)}
-            className="flex w-full items-center gap-3 px-5 py-2.5 text-sm text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+            className="flex w-full items-center gap-3 px-5 py-2.5 text-sm text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
           >
             <item.icon className="h-4 w-4 shrink-0 stroke-[1.75]" />
             {item.label}
@@ -178,7 +178,7 @@ export default function UserPanel({
       {/* Security section */}
       <div
         className="py-1.5"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderTop: '1px solid hsl(var(--border))' }}
       >
         <p className="px-5 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
           Security
@@ -187,7 +187,7 @@ export default function UserPanel({
           <button
             key={item.href}
             onClick={() => navTo(item.href)}
-            className="flex w-full items-center gap-3 px-5 py-2.5 text-sm text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+            className="flex w-full items-center gap-3 px-5 py-2.5 text-sm text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
           >
             <item.icon className="h-4 w-4 shrink-0 stroke-[1.75]" />
             {item.label}
@@ -198,7 +198,7 @@ export default function UserPanel({
       {/* Sign out */}
       <div
         className="p-3"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ borderTop: '1px solid hsl(var(--border))' }}
       >
         <button
           onClick={handleLogout}

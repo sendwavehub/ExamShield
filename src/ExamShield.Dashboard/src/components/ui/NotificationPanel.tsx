@@ -60,17 +60,17 @@ export default function NotificationPanel({ open, anchorRef, notifications, onDi
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
-        background: 'hsl(220 35% 13%)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        background: 'hsl(var(--card))',
+        border: '1px solid hsl(var(--border))',
         borderRadius: '1rem',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.70)',
+        boxShadow: 'var(--glass-shadow-lg)',
         overflow: 'hidden',
       }}
     >
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3"
-        style={{ background: 'hsl(220 35% 11%)', borderBottom: '1px solid rgba(255,255,255,0.10)' }}
+        style={{ background: 'hsl(var(--background))', borderBottom: '1px solid hsl(var(--border))' }}
       >
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-foreground">Notifications</span>
@@ -115,8 +115,8 @@ export default function NotificationPanel({ open, anchorRef, notifications, onDi
                 <li
                   key={i}
                   className={cn(
-                    'relative flex gap-3 px-4 py-3 hover:bg-white/5 transition-colors',
-                    i < notifications.length - 1 && 'border-b border-white/8'
+                    'relative flex gap-3 px-4 py-3 hover:bg-muted/50 transition-colors',
+                    i < notifications.length - 1 && 'border-b border-border/50'
                   )}
                 >
                   <div className={cn('absolute left-0 top-0 bottom-0 w-0.5 rounded-r', cfg.bar)} />

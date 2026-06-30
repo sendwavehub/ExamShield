@@ -144,7 +144,7 @@ These are ideas not yet committed to any milestone. Open a Discussion to advocat
 | Offline-first mobile with local DB sync | SQLite on device, sync on reconnect |
 | ML-based handwriting recognition | Beyond bubble sheets — free-form answers |
 | Blockchain-anchored audit log | Timestamping via Bitcoin or Ethereum OP_RETURN |
-| QR-code anti-copy watermark | Visible QR on printed sheet, verified on upload |
+| QR-code visible stamp on captures | ✅ Implemented — QrStampService overlays a scannable QR (captureId + examId + hash prefix) in the bottom-right corner of every stored image |
 | Multi-tenant SaaS mode | Multiple exam boards on a single cluster |
 | Biometric invigilator verification | Face match at capture start |
 | Federated learning OCR model | Train without exposing raw answer sheets |

@@ -35,7 +35,10 @@ public sealed class DuplicateCaptureTests : IClassFixture<TestWebApplicationFact
         await _client.PostAsJsonAsync($"/exams/{_examId}/students", new EnrollStudentRequest(_studentId));
     }
 
+    // IAsyncLifetime requires DisposeAsync; Dispose is a helper to avoid repeating disposal logic.
+#pragma warning disable xUnit1013
     public void Dispose() => _ecdsa.Dispose();
+#pragma warning restore xUnit1013
     public Task DisposeAsync() { Dispose(); return Task.CompletedTask; }
 
     private RegisterCaptureRequest MakeCaptureRequest(int page = 1)

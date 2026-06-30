@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
 # Quick runner: k6 run <scenario> [extra k6 flags]
+#
+# Available scenarios:
+#   capture-upload    — 200 concurrent invigilators: register + upload + verify  (default)
+#   concurrent-review — 50 reviewers + 10 supervisors draining the review queue
+#   ocr-pipeline      — OCR trigger + result polling under load
+#   auth-login        — Auth endpoint stress + brute-force rate-limit probe
+#
 # Usage:
-#   ./run.sh capture-upload                    # defaults to localhost:5000
-#   ./run.sh ocr-pipeline --env BASE_URL=http://api:5000
+#   ./run.sh                                           # capture-upload on localhost:5000
+#   ./run.sh auth-login --env BASE_URL=http://api:5000
+#   ./run.sh ocr-pipeline --scenario normal
 set -euo pipefail
 
 SCENARIO=${1:-capture-upload}

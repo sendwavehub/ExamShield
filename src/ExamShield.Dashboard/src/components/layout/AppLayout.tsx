@@ -4,12 +4,16 @@ import {
   LayoutDashboard, FileText, Shield, Monitor, ChevronLeft, Bell, User, Menu,
   ClipboardList, ScanLine, Eye, Star, BarChart2, Users, Settings, Search, ShieldCheck,
   BookOpen, KeyRound, FileImage, Trophy, MonitorSmartphone, MessageSquareWarning,
-  Zap, PlayCircle,
+  Zap, PlayCircle, Moon, Sun, Sparkles,
 } from 'lucide-react'
 import { cn, getInitials } from '../../lib/utils'
 import { useNotifications } from '../../hooks/useNotifications'
+import { useTheme, type Theme } from '../../hooks/useTheme'
 import NotificationPanel from '../ui/NotificationPanel'
 import UserPanel from '../ui/UserPanel'
+
+const THEME_ICONS: Record<Theme, typeof Moon> = { dark: Moon, light: Sun, white: Sparkles }
+const THEME_LABELS: Record<Theme, string> = { dark: 'Dark', light: 'Light', white: 'White' }
 
 const NAV_GROUPS = [
   {
@@ -78,6 +82,8 @@ export default function AppLayout({ userName, userEmail, hasMfa, expiresAt, onLo
   const userRef = useRef<HTMLButtonElement>(null)
   const location = useLocation()
   const { notifications, dismiss, clearAll } = useNotifications()
+  const { theme, cycleTheme } = useTheme()
+  const ThemeIcon = THEME_ICONS[theme]
 
   const isActive = (href: string) =>
     href === '/' ? location.pathname === '/' : location.pathname.startsWith(href)
@@ -192,6 +198,16 @@ export default function AppLayout({ userName, userEmail, hasMfa, expiresAt, onLo
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Theme toggle */}
+            <button
+              aria-label={`Switch theme, current: ${THEME_LABELS[theme]}`}
+              onClick={cycleTheme}
+              title={`Theme: ${THEME_LABELS[theme]}`}
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+            >
+              <ThemeIcon className="h-4 w-4 stroke-[1.75]" />
+            </button>
+
             {/* Notification bell */}
             <div className="relative">
               <button
