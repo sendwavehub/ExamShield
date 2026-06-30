@@ -34,7 +34,7 @@ export function useAuth() {
     }
     localStorage.setItem('auth_token', res.token)
     localStorage.setItem('auth_role', res.role)
-    localStorage.setItem('auth_refresh_token', res.refreshToken)
+    // Refresh token is stored in an HttpOnly cookie set by the server — not in localStorage.
     setAuth({ token: res.token, role: res.role, step: 'idle', pendingCredentials: null })
   }, [])
 
@@ -44,27 +44,21 @@ export function useAuth() {
     const res = await api.mfaLogin(creds.email, creds.password, code)
     localStorage.setItem('auth_token', res.token)
     localStorage.setItem('auth_role', res.role)
-    localStorage.setItem('auth_refresh_token', res.refreshToken)
     setAuth({ token: res.token, role: res.role, step: 'idle', pendingCredentials: null })
   }, [auth.pendingCredentials])
 
   const refresh = useCallback(async () => {
-    const refreshToken = localStorage.getItem('auth_refresh_token')
-    if (!refreshToken) throw new Error('No refresh token')
-    const res = await api.refreshToken(refreshToken)
+    // Cookie is sent automatically via credentials: 'include' in the API client.
+    const res = await api.refreshToken()
     localStorage.setItem('auth_token', res.token)
-    localStorage.setItem('auth_refresh_token', res.refreshToken)
     setAuth(prev => ({ ...prev, token: res.token }))
   }, [])
 
   const logout = useCallback(async () => {
-    const refreshToken = localStorage.getItem('auth_refresh_token')
-    if (refreshToken) {
-      try { await api.logout(refreshToken) } catch { /* revoke best-effort */ }
-    }
+    // Server reads the HttpOnly cookie and revokes the refresh token.
+    try { await api.logout() } catch { /* revoke best-effort */ }
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_role')
-    localStorage.removeItem('auth_refresh_token')
     setAuth({ token: null, role: null, step: 'idle', pendingCredentials: null })
   }, [])
 

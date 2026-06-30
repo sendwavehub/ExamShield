@@ -63,11 +63,11 @@ void main() {
     expect(find.text('History'), findsOneWidget);
   });
 
-  testWidgets('shows Sync tab label', (tester) async {
+  testWidgets('shows Uploads tab label', (tester) async {
     await tester.pumpWidget(buildSubject(
         captureService: mockCapture, syncService: mockSync));
     await tester.pump();
-    expect(find.text('Sync'), findsOneWidget);
+    expect(find.text('Uploads'), findsOneWidget);
   });
 
   testWidgets('shows Notifications tab label', (tester) async {
@@ -93,7 +93,7 @@ void main() {
     expect(nav.currentIndex, 0);
   });
 
-  testWidgets('shows pending badge on Sync tab when items queued', (tester) async {
+  testWidgets('shows pending badge on Uploads tab when items queued', (tester) async {
     when(() => mockQueue.pendingCount()).thenAnswer((_) async => 4);
     await tester.pumpWidget(buildSubject(
         captureService: mockCapture, syncService: mockSync));
@@ -101,7 +101,7 @@ void main() {
     expect(find.text('4'), findsOneWidget);
   });
 
-  testWidgets('no badge shown on Sync tab when queue is empty', (tester) async {
+  testWidgets('no badge shown on Uploads tab when queue is empty', (tester) async {
     when(() => mockQueue.pendingCount()).thenAnswer((_) async => 0);
     await tester.pumpWidget(buildSubject(
         captureService: mockCapture, syncService: mockSync));

@@ -8,7 +8,7 @@ public sealed record LoginResponse(
     string Role,
     bool RequiresMfa = false,
     bool MfaSetupRequired = false);
-public sealed record RefreshRequest(string RefreshToken);
+public sealed record RefreshRequest(string? RefreshToken = null);
 public sealed record MfaLoginRequest(string Email, string Password, string Code);
 
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);

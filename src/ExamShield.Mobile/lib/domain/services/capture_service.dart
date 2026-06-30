@@ -73,6 +73,24 @@ class CaptureService {
     }
   }
 
+  /// Uploads a single queued capture; marks done on success, increments retry on failure.
+  Future<bool> retrySingle(PendingCapture capture) async {
+    final token = await storage.loadToken();
+    if (token == null) return false;
+    return _uploadOne(capture, token.accessToken);
+  }
+
+  Future<bool> _uploadOne(PendingCapture capture, String accessToken) async {
+    try {
+      await api.uploadImage(capture.captureId, capture.imageBytes, accessToken);
+      await offlineQueue.markDone(capture.captureId);
+      return true;
+    } catch (_) {
+      await offlineQueue.incrementRetry(capture.captureId);
+      return false;
+    }
+  }
+
   /// Drains the offline queue by uploading all pending captures.
   Future<SyncResult> syncPendingUploads() async {
     final token = await storage.loadToken();

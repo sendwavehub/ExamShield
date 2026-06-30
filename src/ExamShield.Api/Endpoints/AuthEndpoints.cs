@@ -100,21 +100,44 @@ public static class AuthEndpoints
         return app;
     }
 
+    private const string RefreshTokenCookie = "rt";
+
+    private static void SetRefreshTokenCookie(HttpContext ctx, string token) =>
+        ctx.Response.Cookies.Append(RefreshTokenCookie, token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = ctx.Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Path = "/auth",
+            MaxAge = TimeSpan.FromDays(7),
+        });
+
+    private static void ClearRefreshTokenCookie(HttpContext ctx) =>
+        ctx.Response.Cookies.Delete(RefreshTokenCookie,
+            new CookieOptions { Path = "/auth", SameSite = SameSiteMode.Strict });
+
+    private static string? GetRefreshToken(HttpContext ctx, RefreshRequest? body) =>
+        ctx.Request.Cookies.TryGetValue(RefreshTokenCookie, out var cookie) && !string.IsNullOrEmpty(cookie)
+            ? cookie
+            : body?.RefreshToken;
+
     private static async Task<IResult> LoginAsync(
         LoginRequest request, ISender sender, HttpContext ctx, CancellationToken ct)
     {
         var ip = ctx.Connection.RemoteIpAddress?.ToString();
         var result = await sender.Send(new LoginCommand(request.Email, request.Password, ip), ct);
+        SetRefreshTokenCookie(ctx, result.RefreshToken);
         return Results.Ok(new LoginResponse(result.Token, result.RefreshToken, result.Role, result.RequiresMfa, result.MfaSetupRequired));
     }
 
     private static async Task<IResult> MfaLoginAsync(
-        MfaLoginRequest request, ISender sender, CancellationToken ct)
+        MfaLoginRequest request, ISender sender, HttpContext ctx, CancellationToken ct)
     {
         try
         {
             var result = await sender.Send(
                 new MfaLoginCommand(request.Email, request.Password, request.Code), ct);
+            SetRefreshTokenCookie(ctx, result.RefreshToken);
             return Results.Ok(new LoginResponse(result.Token, result.RefreshToken, result.Role));
         }
         catch (Exception e) when (e is InvalidCredentialsException or UnauthorizedAccessException)
@@ -124,11 +147,14 @@ public static class AuthEndpoints
     }
 
     private static async Task<IResult> RefreshAsync(
-        RefreshRequest request, ISender sender, CancellationToken ct)
+        RefreshRequest? request, ISender sender, HttpContext ctx, CancellationToken ct)
     {
+        var token = GetRefreshToken(ctx, request);
+        if (string.IsNullOrEmpty(token)) return Results.Unauthorized();
         try
         {
-            var result = await sender.Send(new RefreshTokenCommand(request.RefreshToken), ct);
+            var result = await sender.Send(new RefreshTokenCommand(token), ct);
+            SetRefreshTokenCookie(ctx, result.RefreshToken);
             return Results.Ok(new LoginResponse(result.Token, result.RefreshToken, result.Role));
         }
         catch (InvalidCredentialsException)
@@ -138,9 +164,12 @@ public static class AuthEndpoints
     }
 
     private static async Task<IResult> LogoutAsync(
-        RefreshRequest request, ISender sender, CancellationToken ct)
+        RefreshRequest? request, ISender sender, HttpContext ctx, CancellationToken ct)
     {
-        await sender.Send(new LogoutCommand(request.RefreshToken), ct);
+        var token = GetRefreshToken(ctx, request);
+        if (!string.IsNullOrEmpty(token))
+            await sender.Send(new LogoutCommand(token), ct);
+        ClearRefreshTokenCookie(ctx);
         return Results.NoContent();
     }
 

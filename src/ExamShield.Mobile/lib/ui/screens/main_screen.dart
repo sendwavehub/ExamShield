@@ -6,7 +6,7 @@ import 'capture_screen.dart';
 import 'history_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
-import 'sync_screen.dart';
+import 'upload_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -22,7 +22,7 @@ class _MainScreenState extends State<MainScreen> {
   static const _screens = [
     CaptureScreen(),
     HistoryScreen(),
-    SyncScreen(),
+    UploadScreen(),
     NotificationsScreen(),
     ProfileScreen(),
   ];
@@ -58,13 +58,13 @@ class _MainScreenState extends State<MainScreen> {
           const BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: 'Capture'),
           const BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
           BottomNavigationBarItem(
-            label: 'Sync',
+            label: 'Uploads',
             icon: _pendingCount > 0
                 ? Badge(
                     label: Text('$_pendingCount'),
-                    child: const Icon(Icons.sync),
+                    child: const Icon(Icons.cloud_upload_outlined),
                   )
-                : const Icon(Icons.sync),
+                : const Icon(Icons.cloud_upload_outlined),
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.notifications_outlined),

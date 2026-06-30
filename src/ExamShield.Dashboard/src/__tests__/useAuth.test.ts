@@ -26,7 +26,7 @@ describe('useAuth', () => {
     vi.clearAllMocks()
   })
 
-  it('login stores token, role, and refresh token in localStorage', async () => {
+  it('login stores token and role in localStorage; refresh token stays in HttpOnly cookie', async () => {
     mockApi.login.mockResolvedValue({
       token: 'access-tok', refreshToken: 'ref-tok', role: 'Admin', requiresMfa: false,
     })
@@ -35,8 +35,9 @@ describe('useAuth', () => {
     await act(async () => { await result.current.login('a@b.com', 'pw') })
 
     expect(localStorage.getItem('auth_token')).toBe('access-tok')
-    expect(localStorage.getItem('auth_refresh_token')).toBe('ref-tok')
     expect(localStorage.getItem('auth_role')).toBe('Admin')
+    // Refresh token must NOT be in localStorage — it lives in the server-set HttpOnly cookie.
+    expect(localStorage.getItem('auth_refresh_token')).toBeNull()
   })
 
   it('login sets requiresMfa when server returns requiresMfa=true', async () => {
@@ -67,15 +68,14 @@ describe('useAuth', () => {
     expect(localStorage.getItem('auth_token')).toBe('full-tok')
   })
 
-  it('logout calls api.logout with stored refresh token', async () => {
+  it('logout calls api.logout (no token arg — uses HttpOnly cookie) and clears localStorage', async () => {
     localStorage.setItem('auth_token', 'tok')
-    localStorage.setItem('auth_refresh_token', 'old-ref')
     mockApi.logout.mockResolvedValue(undefined)
     const { result } = renderHook(() => useAuth())
 
     await act(async () => { await result.current.logout() })
 
-    expect(mockApi.logout).toHaveBeenCalledWith('old-ref')
+    expect(mockApi.logout).toHaveBeenCalledWith()
     expect(localStorage.getItem('auth_token')).toBeNull()
     expect(localStorage.getItem('auth_refresh_token')).toBeNull()
     expect(result.current.isAuthenticated).toBe(false)
@@ -83,7 +83,6 @@ describe('useAuth', () => {
 
   it('logout succeeds even when api.logout throws', async () => {
     localStorage.setItem('auth_token', 'tok')
-    localStorage.setItem('auth_refresh_token', 'ref')
     mockApi.logout.mockRejectedValue(new Error('network'))
     const { result } = renderHook(() => useAuth())
 
@@ -93,9 +92,8 @@ describe('useAuth', () => {
     expect(localStorage.getItem('auth_token')).toBeNull()
   })
 
-  it('refresh stores new tokens from server', async () => {
+  it('refresh calls api.refreshToken (no arg — cookie sent automatically) and stores new access token', async () => {
     localStorage.setItem('auth_token', 'old-tok')
-    localStorage.setItem('auth_refresh_token', 'old-ref')
     mockApi.refreshToken.mockResolvedValue({
       token: 'new-tok', refreshToken: 'new-ref', role: 'Admin', requiresMfa: false,
     })
@@ -103,7 +101,9 @@ describe('useAuth', () => {
 
     await act(async () => { await result.current.refresh() })
 
+    expect(mockApi.refreshToken).toHaveBeenCalledWith()
     expect(localStorage.getItem('auth_token')).toBe('new-tok')
-    expect(localStorage.getItem('auth_refresh_token')).toBe('new-ref')
+    // Refresh token not stored in localStorage — lives in HttpOnly cookie.
+    expect(localStorage.getItem('auth_refresh_token')).toBeNull()
   })
 })

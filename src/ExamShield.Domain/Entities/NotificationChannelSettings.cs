@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Sockets;
+
 namespace ExamShield.Domain.Entities;
 
 public sealed class NotificationChannelSettings
@@ -35,16 +38,16 @@ public sealed class NotificationChannelSettings
         {
             if (string.IsNullOrWhiteSpace(slackWebhookUrl))
                 throw new ArgumentException("Slack webhook URL is required when Slack notifications are enabled.", nameof(slackWebhookUrl));
-            if (!IsHttpUrl(slackWebhookUrl))
-                throw new ArgumentException("Slack webhook URL must be a valid http/https URL.", nameof(slackWebhookUrl));
+            if (!IsSafeWebhookUrl(slackWebhookUrl))
+                throw new ArgumentException("Slack webhook URL must be a public HTTPS URL (localhost and private IP ranges are not permitted).", nameof(slackWebhookUrl));
         }
 
         if (webhookEnabled)
         {
             if (string.IsNullOrWhiteSpace(webhookUrl))
                 throw new ArgumentException("Webhook URL is required when webhook notifications are enabled.", nameof(webhookUrl));
-            if (!IsHttpUrl(webhookUrl))
-                throw new ArgumentException("Webhook URL must be a valid http/https URL.", nameof(webhookUrl));
+            if (!IsSafeWebhookUrl(webhookUrl))
+                throw new ArgumentException("Webhook URL must be a public HTTPS URL (localhost and private IP ranges are not permitted).", nameof(webhookUrl));
         }
 
         EmailEnabled   = emailEnabled;   EmailRecipients  = emailRecipients;
@@ -54,7 +57,31 @@ public sealed class NotificationChannelSettings
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    private static bool IsHttpUrl(string url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out var u) &&
-        (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps);
+    private static bool IsSafeWebhookUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return false;
+        if (uri.Scheme != Uri.UriSchemeHttps)
+            return false;
+        return !IsPrivateOrLoopbackHost(uri.Host);
+    }
+
+    private static bool IsPrivateOrLoopbackHost(string host)
+    {
+        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (!IPAddress.TryParse(host, out var ip))
+            return false;
+        if (IPAddress.IsLoopback(ip))
+            return true;
+        if (ip.IsIPv4MappedToIPv6)
+            ip = ip.MapToIPv4();
+        if (ip.AddressFamily != AddressFamily.InterNetwork)
+            return false;
+        var b = ip.GetAddressBytes();
+        return b[0] == 10
+            || (b[0] == 172 && b[1] >= 16 && b[1] <= 31)
+            || (b[0] == 192 && b[1] == 168)
+            || (b[0] == 169 && b[1] == 254);
+    }
 }

@@ -10,19 +10,18 @@ let _refreshing: Promise<string | null> | null = null
 
 async function tryRefresh(): Promise<string | null> {
   if (_refreshing) return _refreshing
-  const refreshToken = localStorage.getItem('auth_refresh_token')
-  if (!refreshToken) return null
   _refreshing = (async () => {
     try {
+      // Refresh token lives in an HttpOnly cookie — no localStorage read needed.
       const res = await fetch(`${BASE_URL}/auth/refresh`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        body: '{}',
       })
       if (!res.ok) return null
-      const data = await res.json() as { token: string; refreshToken: string }
+      const data = await res.json() as { token: string }
       localStorage.setItem('auth_token', data.token)
-      localStorage.setItem('auth_refresh_token', data.refreshToken)
       return data.token
     } catch {
       return null
@@ -36,7 +35,6 @@ async function tryRefresh(): Promise<string | null> {
 function signOut() {
   localStorage.removeItem('auth_token')
   localStorage.removeItem('auth_role')
-  localStorage.removeItem('auth_refresh_token')
   window.dispatchEvent(new CustomEvent('auth:expired'))
 }
 
@@ -166,16 +164,18 @@ export const api = {
       body: JSON.stringify({ email, password, code }),
     }),
 
-  refreshToken: (refreshToken: string) =>
+  refreshToken: () =>
     request<LoginResponse>('/auth/refresh', {
       method: 'POST',
-      body: JSON.stringify({ refreshToken }),
+      credentials: 'include',
+      body: '{}',
     }),
 
-  logout: (refreshToken: string) =>
+  logout: () =>
     request<void>('/auth/logout', {
       method: 'POST',
-      body: JSON.stringify({ refreshToken }),
+      credentials: 'include',
+      body: '{}',
     }),
 
   getAuditLog: (params?: {

@@ -130,7 +130,9 @@ Goal: deployable to real national-scale examinations.
 | Multi-region deployment support | 💡 Community interest welcome |
 | Penetration testing + security audit | 📋 Engage an external firm |
 | 99.9% uptime SLA architecture | 📋 Requires multi-region + chaos testing |
-| User manuals (invigilator / admin / reviewer) | 📋 |
+| User manuals (invigilator / admin / reviewer / auditor / device manager / student) | ✅ `docs/manuals/` — 6 guides |
+| Sequence diagrams (capture, OCR, auth, verification flows) | ✅ `docs/SEQUENCE-DIAGRAMS.md` |
+| Threat model (STRIDE, assets, mitigations) | ✅ `docs/THREAT-MODEL.md` |
 
 ---
 

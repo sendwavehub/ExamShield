@@ -159,4 +159,52 @@ public sealed class NotificationChannelSettingsTests
 
         Assert.Equal(1, s.Id);
     }
+
+    // ── SSRF protection — webhook URLs ───────────────────────────────────────
+
+    [Theory]
+    [InlineData("http://example.com/alert")]          // plain HTTP not allowed
+    [InlineData("https://localhost/alert")]            // localhost
+    [InlineData("https://127.0.0.1/alert")]           // loopback
+    [InlineData("https://10.0.0.1/alert")]            // RFC-1918 class A
+    [InlineData("https://172.16.0.1/alert")]          // RFC-1918 class B
+    [InlineData("https://172.31.255.255/alert")]      // RFC-1918 class B upper bound
+    [InlineData("https://192.168.1.100/alert")]       // RFC-1918 class C
+    [InlineData("https://169.254.169.254/latest")]    // AWS IMDS link-local
+    public void Update_WebhookUrlWithSsrfTarget_ThrowsArgumentException(string url)
+    {
+        var s = NotificationChannelSettings.CreateDefault();
+
+        Assert.Throws<ArgumentException>(() =>
+            s.Update(false, null, false, null, false, null, webhookEnabled: true, webhookUrl: url));
+    }
+
+    [Theory]
+    [InlineData("http://hooks.slack.com/T/XYZ")]      // plain HTTP
+    [InlineData("https://localhost/hook")]             // localhost
+    [InlineData("https://127.0.0.1/hook")]            // loopback
+    [InlineData("https://10.10.10.10/hook")]          // RFC-1918
+    [InlineData("https://192.168.0.1/hook")]          // RFC-1918
+    [InlineData("https://169.254.169.254/hook")]      // IMDS link-local
+    public void Update_SlackWebhookUrlWithSsrfTarget_ThrowsArgumentException(string url)
+    {
+        var s = NotificationChannelSettings.CreateDefault();
+
+        Assert.Throws<ArgumentException>(() =>
+            s.Update(false, null, slackEnabled: true, slackWebhookUrl: url, false, null, false, null));
+    }
+
+    [Theory]
+    [InlineData("https://hooks.slack.com/services/T/B/X")]
+    [InlineData("https://external-monitoring.example.com/webhook/examshield")]
+    [InlineData("https://notify.company.org/api/alerts")]
+    public void Update_WebhookUrlWithPublicHttpsHost_DoesNotThrow(string url)
+    {
+        var s = NotificationChannelSettings.CreateDefault();
+
+        var act = () => s.Update(false, null, false, null, false, null, webhookEnabled: true, webhookUrl: url);
+
+        act(); // must not throw
+        Assert.Equal(url, s.WebhookUrl);
+    }
 }
